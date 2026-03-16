@@ -327,10 +327,11 @@ function mdAuthors(manga){
 
 // Score how well a title matches the query (lower = better)
 function titleMatchScore(query, allTitles){
-  const q=query.toLowerCase();
+  const q=query.trim().toLowerCase();
+  if(!q) return 999;
   let best=999;
   for(const t of allTitles){
-    const tl=t.toLowerCase();
+    const tl=t.trim().toLowerCase();
     if(tl===q) return 0; // exact match
     if(tl.startsWith(q)) best=Math.min(best,1); // starts with
     if(tl.includes(q)) best=Math.min(best,2); // contains
@@ -343,7 +344,7 @@ async function sM(i,q){if(aS!==i)return;try{
 
   // ===== Strategy 1: MangaDex API =====
   try{
-    const r=await fetch(`https://api.mangadex.org/manga?title=${encodeURIComponent(q)}&limit=20&includes[]=cover_art&includes[]=author&contentRating[]=safe&contentRating[]=suggestive`);
+    const r=await fetch(`https://api.mangadex.org/manga?title=${encodeURIComponent(q)}&limit=20&includes[]=cover_art&includes[]=author&order[relevance]=desc&contentRating[]=safe&contentRating[]=suggestive`);
     if(r.ok){const d=await r.json();
       if(d.data&&d.data.length){
         items=d.data.map(m=>{
@@ -386,7 +387,7 @@ async function sM(i,q){if(aS!==i)return;try{
 
   lR[i]={q,items};if(aS===i)rS(i,items);
 }catch(e){sP.innerHTML='<div class="sug-header">📚</div><div class="sug-empty">検索に失敗しました</div>';pS(document.getElementById(`input${i}`));sP.classList.add('show')}}
-function rS(i,items){const el=document.getElementById(`input${i}`);sP.innerHTML=`<div class="sug-header">📚 検索結果（${items.length}件）</div>`;if(!items.length){sP.innerHTML+='<div class="sug-empty">見つかりませんでした</div>';pS(el);sP.classList.add('show');return}items.forEach(item=>{const info=item.volumeInfo,th=info.imageLinks?.thumbnail||info.imageLinks?.smallThumbnail||'',title=info.title||'',auth=(info.authors||[]).join(', '),src=item._src;const d=document.createElement('div');d.className='sug-item';d.innerHTML=`${th?`<img class="sug-thumb" src="${th.replace('http://','https://')}">`:'<div class="sug-no-img">📖</div>'}<div class="sug-info"><div class="sug-title">${esc(title)}</div><div class="sug-meta">${auth?`<span class="sug-author">${esc(auth)}</span>`:''}</div></div>`;d.addEventListener('mousedown',e=>{e.preventDefault();sel(i,title,th,auth)});d.addEventListener('touchend',e=>{e.preventDefault();sel(i,title,th,auth)});sP.appendChild(d)});pS(el);sP.classList.add('show')}
+function rS(i,items){const el=document.getElementById(`input${i}`);sP.innerHTML=`<div class="sug-header">📚 検索結果（${items.length}件）</div>`;if(!items.length){sP.innerHTML+='<div class="sug-empty">見つかりませんでした</div>';pS(el);sP.classList.add('show');return}items.forEach(item=>{const info=item.volumeInfo,th=info.imageLinks?.thumbnail||info.imageLinks?.smallThumbnail||'',title=info.title||'',auth=(info.authors||[]).join(', '),src=item._src;const d=document.createElement('div');d.className='sug-item';d.innerHTML=`${th?`<img class="sug-thumb" src="${th.replace('http://','https://')}" referrerpolicy="no-referrer">`:'<div class="sug-no-img">📖</div>'}<div class="sug-info"><div class="sug-title">${esc(title)}</div><div class="sug-meta">${auth?`<span class="sug-author">${esc(auth)}</span>`:''}</div></div>`;d.addEventListener('mousedown',e=>{e.preventDefault();sel(i,title,th,auth)});d.addEventListener('touchend',e=>{e.preventDefault();sel(i,title,th,auth)});sP.appendChild(d)});pS(el);sP.classList.add('show')}
 function sel(i,title,cover,auth){document.getElementById(`input${i}`).value=title;document.getElementById(`input${i}`).classList.add('has-cover');MD[i]={title,cover:cover?cover.replace('http://','https://'):'' ,authors:auth};mIS=false;cS();const n=document.getElementById(`input${(i+1)%9}`);if(n&&!n.value)n.focus()}
 
 async function generate(){const btn=document.getElementById('btnGenerate'),ld=document.getElementById('loadingOverlay');let cnt=0;for(let i=0;i<9;i++){const v=document.getElementById(`input${i}`).value.trim();if(v&&!MD[i]?.title)MD[i]={title:v,cover:'',authors:''};if(MD[i]?.title)cnt++}if(!cnt){alert('少なくとも1つマンガを入力してください');return}btn.disabled=true;ld.classList.add('active');
@@ -410,7 +411,7 @@ async function generate(){const btn=document.getElementById('btnGenerate'),ld=do
 
 let gO=[0,1,2,3,4,5,6,7,8],dSrc=null;
 function buildGrid(){const cg=document.getElementById('coverGrid');cg.innerHTML='';gO.forEach((di,gp)=>{const cell=document.createElement('div');cell.className='cover-cell';cell.draggable=true;cell.dataset.gridpos=gp;const m=MD[di];
-if(m?.cover){const hr=m.cover.startsWith('data:')?m.cover:m.cover.replace('zoom=1','zoom=2').replace('&edge=curl','');cell.innerHTML=`<img src="${hr}" alt="${esc(m.title||'')}" crossorigin="anonymous" onerror="this.onerror=null;this.src='${m.cover}'"/><div class="upload-overlay" onclick="trigUp(${di})"><span>📁 画像を変更</span></div><div class="cover-title-overlay">${esc(m.title||'')}</div>`}else if(m?.title){cell.innerHTML=`<div class="cover-placeholder">${esc(m.title)}<label class="upload-btn" onclick="trigUp(${di})">📁 画像を選択</label></div>`}else{cell.innerHTML=`<div class="cover-placeholder">?</div>`}
+if(m?.cover){const hr=m.cover.startsWith('data:')?m.cover:m.cover.replace('zoom=1','zoom=2').replace('&edge=curl','');cell.innerHTML=`<img src="${hr}" alt="${esc(m.title||'')}" crossorigin="anonymous" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='${m.cover}'"/><div class="upload-overlay" onclick="trigUp(${di})"><span>📁 画像を変更</span></div><div class="cover-title-overlay">${esc(m.title||'')}</div>`}else if(m?.title){cell.innerHTML=`<div class="cover-placeholder">${esc(m.title)}<label class="upload-btn" onclick="trigUp(${di})">📁 画像を選択</label></div>`}else{cell.innerHTML=`<div class="cover-placeholder">?</div>`}
 cell.addEventListener('dragstart',e=>{dSrc=gp;cell.classList.add('dragging');e.dataTransfer.effectAllowed='move'});cell.addEventListener('dragend',()=>{cell.classList.remove('dragging');document.querySelectorAll('.cover-cell').forEach(c=>c.classList.remove('drag-over'));dSrc=null});cell.addEventListener('dragover',e=>{e.preventDefault();if(dSrc!==null&&dSrc!==gp)cell.classList.add('drag-over')});cell.addEventListener('dragleave',()=>cell.classList.remove('drag-over'));cell.addEventListener('drop',e=>{e.preventDefault();cell.classList.remove('drag-over');if(dSrc===null||dSrc===gp)return;const t=gO[dSrc];gO[dSrc]=gO[gp];gO[gp]=t;buildGrid()});
 let tc=null;cell.addEventListener('touchstart',e=>{if(e.target.closest('.upload-btn')||e.target.closest('.upload-overlay'))return;dSrc=gp},{passive:true});cell.addEventListener('touchmove',e=>{if(dSrc===null)return;e.preventDefault();const touch=e.touches[0];if(!tc){tc=cell.cloneNode(true);tc.style.cssText=`position:fixed;z-index:1000;pointer-events:none;opacity:0.8;width:${cell.offsetWidth}px;height:${cell.offsetHeight}px;`;document.body.appendChild(tc);cell.classList.add('dragging')}tc.style.left=(touch.clientX-cell.offsetWidth/2)+'px';tc.style.top=(touch.clientY-cell.offsetHeight/2)+'px';document.querySelectorAll('.cover-cell').forEach(c=>c.classList.remove('drag-over'));const el=document.elementFromPoint(touch.clientX,touch.clientY);const tgt=el?.closest('.cover-cell');if(tgt&&tgt!==cell)tgt.classList.add('drag-over')},{passive:false});cell.addEventListener('touchend',e=>{if(tc){document.body.removeChild(tc);tc=null}cell.classList.remove('dragging');document.querySelectorAll('.cover-cell').forEach(c=>c.classList.remove('drag-over'));if(dSrc===null)return;const touch=e.changedTouches[0];const el=document.elementFromPoint(touch.clientX,touch.clientY);const tgt=el?.closest('.cover-cell');if(tgt){const tp=parseInt(tgt.dataset.gridpos);if(!isNaN(tp)&&tp!==dSrc){const t=gO[dSrc];gO[dSrc]=gO[tp];gO[tp]=t;buildGrid()}}dSrc=null});cg.appendChild(cell)})}
 function trigUp(di){uI=di;fU.click()}
