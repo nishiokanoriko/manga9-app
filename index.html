@@ -304,6 +304,7 @@ function cS(){sP.classList.remove('show');aS=-1}
 function pS(el){const r=el.getBoundingClientRect(),pw=Math.max(300,r.width*1.8);let l=r.left+r.width/2-pw/2;l=Math.max(8,Math.min(l,window.innerWidth-pw-8));const sb=window.innerHeight-r.bottom-16,sa=r.top-16;if(sb>=200||sb>=sa){sP.style.top=(r.bottom+6)+'px';sP.style.bottom='auto';sP.style.maxHeight=Math.min(420,sb)+'px'}else{sP.style.bottom=(window.innerHeight-r.top+6)+'px';sP.style.top='auto';sP.style.maxHeight=Math.min(420,sa)+'px'}sP.style.left=l+'px';sP.style.width=pw+'px'}
 function hI(i,v){if(dT[i])clearTimeout(dT[i]);if(v.length<2){cS();return}aS=i;sP.innerHTML='<div class="sug-header">📚 検索中...</div><div class="sug-loading">検索中...</div>';pS(document.getElementById(`input${i}`));sP.classList.add('show');dT[i]=setTimeout(()=>sM(i,v),350)}
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function proxyImg(u){if(!u||u.startsWith('data:'))return u;return '/api/image-proxy?url='+encodeURIComponent(u.replace('http://','https://'))}
 // ===== MangaDex helper: extract cover URL from manga data =====
 function mdCover(manga){
   const cover=manga.relationships?.find(r=>r.type==='cover_art');
@@ -346,13 +347,7 @@ async function sM(i,q){if(aS!==i)return;try{
   try{
     const r=await fetch(`/api/manga-search?title=${encodeURIComponent(q)}&limit=20`);
     if(r.ok){const d=await r.json();
-      console.log('[DEBUG] MangaDex API raw response for query:', q, 'total:', d.data?.length);
       if(d.data&&d.data.length){
-        d.data.forEach((m,idx)=>{
-          const allT=mdAllTitles(m);
-          const score=titleMatchScore(q,allT);
-          console.log(`[DEBUG] #${idx} title="${mdTitle(m)}" allTitles=`,allT,`score=${score} cover=${mdCover(m)?'YES':'NO'}`);
-        });
         items=d.data.map(m=>{
           const allT=mdAllTitles(m);
           return {
@@ -368,7 +363,6 @@ async function sM(i,q){if(aS!==i)return;try{
           if(ai!==bi) return ai-bi;
           return (a.volumeInfo?.title?.length||999)-(b.volumeInfo?.title?.length||999);
         });
-        console.log('[DEBUG] Sorted results:', items.map(x=>`${x.volumeInfo.title} (score=${x._score})`));
       }
     }
   }catch(e){}
@@ -377,13 +371,13 @@ async function sM(i,q){if(aS!==i)return;try{
   if(!items.length){
     let googleOk=true;
     try{
-      const r=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&langRestrict=ja&maxResults=20&printType=books`);
+      const r=await fetch(`/api/book-search?q=${encodeURIComponent(q)}&langRestrict=ja&maxResults=20`);
       if(r.status===429||r.status===403){googleOk=false}
       else if(r.ok){const d=await r.json();if(d.items)items=d.items.map(x=>({...x,_src:'google'}))}
       else{googleOk=false}
     }catch(e){googleOk=false}
     if(!items.length&&googleOk){
-      try{const r=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=20&printType=books`);if(r.ok){const d=await r.json();if(d.items)items=d.items.map(x=>({...x,_src:'google'}))}}catch(e){}
+      try{const r=await fetch(`/api/book-search?q=${encodeURIComponent(q)}&maxResults=20`);if(r.ok){const d=await r.json();if(d.items)items=d.items.map(x=>({...x,_src:'google'}))}}catch(e){}
     }
     if(!items.length&&!googleOk){
       sP.innerHTML='<div class="sug-header">📚 検索</div><div class="sug-empty">検索APIの制限に達しました<br><span style="font-size:11px;color:#888">しばらく待つか、「画像を選択」で<br>手動アップロードしてください</span></div>';
@@ -394,7 +388,7 @@ async function sM(i,q){if(aS!==i)return;try{
 
   lR[i]={q,items};if(aS===i)rS(i,items);
 }catch(e){sP.innerHTML='<div class="sug-header">📚</div><div class="sug-empty">検索に失敗しました</div>';pS(document.getElementById(`input${i}`));sP.classList.add('show')}}
-function rS(i,items){const el=document.getElementById(`input${i}`);sP.innerHTML=`<div class="sug-header">📚 検索結果（${items.length}件）</div>`;if(!items.length){sP.innerHTML+='<div class="sug-empty">見つかりませんでした</div>';pS(el);sP.classList.add('show');return}items.forEach(item=>{const info=item.volumeInfo,th=info.imageLinks?.thumbnail||info.imageLinks?.smallThumbnail||'',title=info.title||'',auth=(info.authors||[]).join(', '),src=item._src;const d=document.createElement('div');d.className='sug-item';d.innerHTML=`${th?`<img class="sug-thumb" src="${th.replace('http://','https://')}" referrerpolicy="no-referrer">`:'<div class="sug-no-img">📖</div>'}<div class="sug-info"><div class="sug-title">${esc(title)}</div><div class="sug-meta">${auth?`<span class="sug-author">${esc(auth)}</span>`:''}</div></div>`;d.addEventListener('mousedown',e=>{e.preventDefault();sel(i,title,th,auth)});d.addEventListener('touchend',e=>{e.preventDefault();sel(i,title,th,auth)});sP.appendChild(d)});pS(el);sP.classList.add('show')}
+function rS(i,items){const el=document.getElementById(`input${i}`);sP.innerHTML=`<div class="sug-header">📚 検索結果（${items.length}件）</div>`;if(!items.length){sP.innerHTML+='<div class="sug-empty">見つかりませんでした</div>';pS(el);sP.classList.add('show');return}items.forEach(item=>{const info=item.volumeInfo,th=info.imageLinks?.thumbnail||info.imageLinks?.smallThumbnail||'',title=info.title||'',auth=(info.authors||[]).join(', '),src=item._src;const d=document.createElement('div');d.className='sug-item';d.innerHTML=`${th?`<img class="sug-thumb" src="${proxyImg(th)}">`:'<div class="sug-no-img">📖</div>'}<div class="sug-info"><div class="sug-title">${esc(title)}</div><div class="sug-meta">${auth?`<span class="sug-author">${esc(auth)}</span>`:''}</div></div>`;d.addEventListener('mousedown',e=>{e.preventDefault();sel(i,title,th,auth)});d.addEventListener('touchend',e=>{e.preventDefault();sel(i,title,th,auth)});sP.appendChild(d)});pS(el);sP.classList.add('show')}
 function sel(i,title,cover,auth){document.getElementById(`input${i}`).value=title;document.getElementById(`input${i}`).classList.add('has-cover');MD[i]={title,cover:cover?cover.replace('http://','https://'):'' ,authors:auth};mIS=false;cS();const n=document.getElementById(`input${(i+1)%9}`);if(n&&!n.value)n.focus()}
 
 async function generate(){const btn=document.getElementById('btnGenerate'),ld=document.getElementById('loadingOverlay');let cnt=0;for(let i=0;i<9;i++){const v=document.getElementById(`input${i}`).value.trim();if(v&&!MD[i]?.title)MD[i]={title:v,cover:'',authors:''};if(MD[i]?.title)cnt++}if(!cnt){alert('少なくとも1つマンガを入力してください');return}btn.disabled=true;ld.classList.add('active');
@@ -403,14 +397,14 @@ async function generate(){const btn=document.getElementById('btnGenerate'),ld=do
     // MangaDex first
     try{
       const r=await fetch(`/api/manga-search?title=${encodeURIComponent(MD[i].title)}&limit=5`);
-      if(r.ok){const d=await r.json();console.log(`[DEBUG] generate() slot=${i} title="${MD[i].title}" mangadex results:`,d.data?.length);const m=(d.data||[]).find(x=>mdCover(x));
-        if(m){MD[i].cover=mdCover(m);found=true;console.log(`[DEBUG] generate() slot=${i} cover found:`,MD[i].cover)}else{console.log(`[DEBUG] generate() slot=${i} no cover found in MangaDex results`)}}
+      if(r.ok){const d=await r.json();const m=(d.data||[]).find(x=>mdCover(x));
+        if(m){MD[i].cover=mdCover(m);found=true}}
     }catch(e){}
     // Google Books fallback
     if(!found){
       for(const url of[
-        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(MD[i].title)}&langRestrict=ja&maxResults=5&printType=books`,
-        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(MD[i].title)}&maxResults=5&printType=books`
+        `/api/book-search?q=${encodeURIComponent(MD[i].title)}&langRestrict=ja&maxResults=5`,
+        `/api/book-search?q=${encodeURIComponent(MD[i].title)}&maxResults=5`
       ]){if(found)break;try{const res=await fetch(url);if(res.status===429||res.status===403)break;if(!res.ok)continue;const data=await res.json();const w=(data.items||[]).find(it=>it.volumeInfo?.imageLinks?.thumbnail);if(w){MD[i].cover=w.volumeInfo.imageLinks.thumbnail.replace('http://','https://');found=true}else if(data.items?.[0]?.volumeInfo?.imageLinks?.smallThumbnail){MD[i].cover=data.items[0].volumeInfo.imageLinks.smallThumbnail.replace('http://','https://');found=true}}catch(e){}}
     }
   }}
@@ -418,7 +412,7 @@ async function generate(){const btn=document.getElementById('btnGenerate'),ld=do
 
 let gO=[0,1,2,3,4,5,6,7,8],dSrc=null;
 function buildGrid(){const cg=document.getElementById('coverGrid');cg.innerHTML='';gO.forEach((di,gp)=>{const cell=document.createElement('div');cell.className='cover-cell';cell.draggable=true;cell.dataset.gridpos=gp;const m=MD[di];
-if(m?.cover){const hr=m.cover.startsWith('data:')?m.cover:m.cover.replace('zoom=1','zoom=2').replace('&edge=curl','');console.log(`[DEBUG] buildGrid slot=${di} title="${m.title}" cover_url="${hr}"`);cell.innerHTML=`<img src="${hr}" alt="${esc(m.title||'')}" crossorigin="anonymous" referrerpolicy="no-referrer" onerror="console.error('[DEBUG] IMG LOAD FAILED url=',this.src,'title=${esc(m.title||'')}');this.onerror=null;this.src='${m.cover}'"/><div class="upload-overlay" onclick="trigUp(${di})"><span>📁 画像を変更</span></div><div class="cover-title-overlay">${esc(m.title||'')}</div>`}else if(m?.title){cell.innerHTML=`<div class="cover-placeholder">${esc(m.title)}<label class="upload-btn" onclick="trigUp(${di})">📁 画像を選択</label></div>`}else{cell.innerHTML=`<div class="cover-placeholder">?</div>`}
+if(m?.cover){const hr=m.cover.startsWith('data:')?m.cover:m.cover.replace('zoom=1','zoom=2').replace('&edge=curl','');const phr=proxyImg(hr);cell.innerHTML=`<img src="${phr}" alt="${esc(m.title||'')}" crossorigin="anonymous" onerror="this.onerror=null;this.src='${proxyImg(m.cover)}'"/><div class="upload-overlay" onclick="trigUp(${di})"><span>📁 画像を変更</span></div><div class="cover-title-overlay">${esc(m.title||'')}</div>`}else if(m?.title){cell.innerHTML=`<div class="cover-placeholder">${esc(m.title)}<label class="upload-btn" onclick="trigUp(${di})">📁 画像を選択</label></div>`}else{cell.innerHTML=`<div class="cover-placeholder">?</div>`}
 cell.addEventListener('dragstart',e=>{dSrc=gp;cell.classList.add('dragging');e.dataTransfer.effectAllowed='move'});cell.addEventListener('dragend',()=>{cell.classList.remove('dragging');document.querySelectorAll('.cover-cell').forEach(c=>c.classList.remove('drag-over'));dSrc=null});cell.addEventListener('dragover',e=>{e.preventDefault();if(dSrc!==null&&dSrc!==gp)cell.classList.add('drag-over')});cell.addEventListener('dragleave',()=>cell.classList.remove('drag-over'));cell.addEventListener('drop',e=>{e.preventDefault();cell.classList.remove('drag-over');if(dSrc===null||dSrc===gp)return;const t=gO[dSrc];gO[dSrc]=gO[gp];gO[gp]=t;buildGrid()});
 let tc=null;cell.addEventListener('touchstart',e=>{if(e.target.closest('.upload-btn')||e.target.closest('.upload-overlay'))return;dSrc=gp},{passive:true});cell.addEventListener('touchmove',e=>{if(dSrc===null)return;e.preventDefault();const touch=e.touches[0];if(!tc){tc=cell.cloneNode(true);tc.style.cssText=`position:fixed;z-index:1000;pointer-events:none;opacity:0.8;width:${cell.offsetWidth}px;height:${cell.offsetHeight}px;`;document.body.appendChild(tc);cell.classList.add('dragging')}tc.style.left=(touch.clientX-cell.offsetWidth/2)+'px';tc.style.top=(touch.clientY-cell.offsetHeight/2)+'px';document.querySelectorAll('.cover-cell').forEach(c=>c.classList.remove('drag-over'));const el=document.elementFromPoint(touch.clientX,touch.clientY);const tgt=el?.closest('.cover-cell');if(tgt&&tgt!==cell)tgt.classList.add('drag-over')},{passive:false});cell.addEventListener('touchend',e=>{if(tc){document.body.removeChild(tc);tc=null}cell.classList.remove('dragging');document.querySelectorAll('.cover-cell').forEach(c=>c.classList.remove('drag-over'));if(dSrc===null)return;const touch=e.changedTouches[0];const el=document.elementFromPoint(touch.clientX,touch.clientY);const tgt=el?.closest('.cover-cell');if(tgt){const tp=parseInt(tgt.dataset.gridpos);if(!isNaN(tp)&&tp!==dSrc){const t=gO[dSrc];gO[dSrc]=gO[tp];gO[tp]=t;buildGrid()}}dSrc=null});cg.appendChild(cell)})}
 function trigUp(di){uI=di;fU.click()}
