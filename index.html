@@ -304,62 +304,77 @@ function cS(){sP.classList.remove('show');aS=-1}
 function pS(el){const r=el.getBoundingClientRect(),pw=Math.max(300,r.width*1.8);let l=r.left+r.width/2-pw/2;l=Math.max(8,Math.min(l,window.innerWidth-pw-8));const sb=window.innerHeight-r.bottom-16,sa=r.top-16;if(sb>=200||sb>=sa){sP.style.top=(r.bottom+6)+'px';sP.style.bottom='auto';sP.style.maxHeight=Math.min(420,sb)+'px'}else{sP.style.bottom=(window.innerHeight-r.top+6)+'px';sP.style.top='auto';sP.style.maxHeight=Math.min(420,sa)+'px'}sP.style.left=l+'px';sP.style.width=pw+'px'}
 function hI(i,v){if(dT[i])clearTimeout(dT[i]);if(v.length<2){cS();return}aS=i;sP.innerHTML='<div class="sug-header">📚 検索中...</div><div class="sug-loading">検索中...</div>';pS(document.getElementById(`input${i}`));sP.classList.add('show');dT[i]=setTimeout(()=>sM(i,v),350)}
 function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+// ===== MangaDex helper: extract cover URL from manga data =====
+function mdCover(manga){
+  const cover=manga.relationships?.find(r=>r.type==='cover_art');
+  if(cover?.attributes?.fileName){return `https://uploads.mangadex.org/covers/${manga.id}/${cover.attributes.fileName}.256.jpg`}
+  return '';
+}
+function mdTitle(manga){
+  const a=manga.attributes?.title||{};
+  return a.ja||a['ja-ro']||a.en||Object.values(a)[0]||'';
+}
+function mdAuthors(manga){
+  return (manga.relationships||[]).filter(r=>r.type==='author').map(r=>r.attributes?.name).filter(Boolean).join(', ');
+}
+
 async function sM(i,q){if(aS!==i)return;try{
   let items=[];
-  let googleOk=true;
 
-  // Try Google Books first
+  // ===== Strategy 1: MangaDex API (manga-specific, high accuracy) =====
   try{
-    const r=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&langRestrict=ja&maxResults=30&printType=books`);
-    if(r.status===429||r.status===403){googleOk=false}
-    else if(r.ok){const d=await r.json();if(d.items)items=d.items;
-      // If 0 results, try without langRestrict
-      if(!items.length){const r2=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=30&printType=books`);if(r2.ok){const d2=await r2.json();if(d2.items)items=d2.items}}
-    }else{googleOk=false}
-  }catch(e){googleOk=false}
-
-  // Open Library fallback (if Google failed or returned nothing)
-  if(!items.length){
-    try{
-      const r=await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=20`);
-      if(r.ok){const d=await r.json();
-        if(d.docs&&d.docs.length){
-          items=d.docs.map(doc=>({
-            id:'ol_'+doc.key,
-            volumeInfo:{
-              title:doc.title||'',
-              authors:doc.author_name||[],
-              imageLinks:doc.cover_i?{thumbnail:`https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`}:null
-            }
-          }));
-        }
+    const r=await fetch(`https://api.mangadex.org/manga?title=${encodeURIComponent(q)}&limit=20&includes[]=cover_art&includes[]=author&order[relevance]=desc&contentRating[]=safe&contentRating[]=suggestive`);
+    if(r.ok){const d=await r.json();
+      if(d.data&&d.data.length){
+        items=d.data.map(m=>({
+          id:'md_'+m.id,
+          volumeInfo:{title:mdTitle(m),authors:mdAuthors(m)?[mdAuthors(m)]:[],imageLinks:mdCover(m)?{thumbnail:mdCover(m)}:null},
+          _src:'mangadex'
+        }));
       }
-    }catch(e){}
+    }
+  }catch(e){}
+
+  // ===== Strategy 2: Google Books fallback =====
+  if(!items.length){
+    let googleOk=true;
+    try{
+      const r=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&langRestrict=ja&maxResults=20&printType=books`);
+      if(r.status===429||r.status===403){googleOk=false}
+      else if(r.ok){const d=await r.json();if(d.items)items=d.items.map(x=>({...x,_src:'google'}))}
+      else{googleOk=false}
+    }catch(e){googleOk=false}
+    if(!items.length&&googleOk){
+      try{const r=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=20&printType=books`);if(r.ok){const d=await r.json();if(d.items)items=d.items.map(x=>({...x,_src:'google'}))}}catch(e){}
+    }
+    if(!items.length&&!googleOk){
+      sP.innerHTML='<div class="sug-header">📚 検索</div><div class="sug-empty">検索APIの制限に達しました<br><span style="font-size:11px;color:#888">しばらく待つか、「画像を選択」で<br>手動アップロードしてください</span></div>';
+      pS(document.getElementById(`input${i}`));sP.classList.add('show');return;
+    }
   }
 
   items.sort((a,b)=>{const ai=a.volumeInfo?.imageLinks?.thumbnail?0:1,bi=b.volumeInfo?.imageLinks?.thumbnail?0:1;return ai!==bi?ai-bi:(a.volumeInfo?.title?.length||999)-(b.volumeInfo?.title?.length||999)});
-  lR[i]={q,items};
-  if(aS===i){
-    if(!items.length&&!googleOk){
-      // Show rate limit message
-      sP.innerHTML='<div class="sug-header">📚 検索</div><div class="sug-empty">Google Books APIの制限に達しました<br><span style="font-size:11px;color:#888">しばらく待つか、「生成する」→「画像を選択」で<br>手動アップロードしてください</span></div>';
-      pS(document.getElementById(`input${i}`));sP.classList.add('show');
-    }else{rS(i,items)}
-  }
+  lR[i]={q,items};if(aS===i)rS(i,items);
 }catch(e){sP.innerHTML='<div class="sug-header">📚</div><div class="sug-empty">検索に失敗しました</div>';pS(document.getElementById(`input${i}`));sP.classList.add('show')}}
-function rS(i,items){const el=document.getElementById(`input${i}`);sP.innerHTML=`<div class="sug-header">📚 検索結果（${items.length}件）</div>`;if(!items.length){sP.innerHTML+='<div class="sug-empty">見つかりませんでした</div>';pS(el);sP.classList.add('show');return}items.forEach(item=>{const info=item.volumeInfo,th=info.imageLinks?.thumbnail||info.imageLinks?.smallThumbnail||'',title=info.title||'',auth=(info.authors||[]).join(', ');const d=document.createElement('div');d.className='sug-item';d.innerHTML=`${th?`<img class="sug-thumb" src="${th.replace('http://','https://')}">`:'<div class="sug-no-img">📖</div>'}<div class="sug-info"><div class="sug-title">${esc(title)}</div>${auth?`<div class="sug-meta"><span class="sug-author">${esc(auth)}</span></div>`:''}</div>`;d.addEventListener('mousedown',e=>{e.preventDefault();sel(i,title,th,auth)});d.addEventListener('touchend',e=>{e.preventDefault();sel(i,title,th,auth)});sP.appendChild(d)});pS(el);sP.classList.add('show')}
+function rS(i,items){const el=document.getElementById(`input${i}`);sP.innerHTML=`<div class="sug-header">📚 検索結果（${items.length}件）</div>`;if(!items.length){sP.innerHTML+='<div class="sug-empty">見つかりませんでした</div>';pS(el);sP.classList.add('show');return}items.forEach(item=>{const info=item.volumeInfo,th=info.imageLinks?.thumbnail||info.imageLinks?.smallThumbnail||'',title=info.title||'',auth=(info.authors||[]).join(', '),src=item._src;const d=document.createElement('div');d.className='sug-item';d.innerHTML=`${th?`<img class="sug-thumb" src="${th.replace('http://','https://')}">`:'<div class="sug-no-img">📖</div>'}<div class="sug-info"><div class="sug-title">${esc(title)}</div><div class="sug-meta">${auth?`<span class="sug-author">${esc(auth)}</span>`:''}</div></div>`;d.addEventListener('mousedown',e=>{e.preventDefault();sel(i,title,th,auth)});d.addEventListener('touchend',e=>{e.preventDefault();sel(i,title,th,auth)});sP.appendChild(d)});pS(el);sP.classList.add('show')}
 function sel(i,title,cover,auth){document.getElementById(`input${i}`).value=title;document.getElementById(`input${i}`).classList.add('has-cover');MD[i]={title,cover:cover?cover.replace('http://','https://'):'' ,authors:auth};mIS=false;cS();const n=document.getElementById(`input${(i+1)%9}`);if(n&&!n.value)n.focus()}
 
 async function generate(){const btn=document.getElementById('btnGenerate'),ld=document.getElementById('loadingOverlay');let cnt=0;for(let i=0;i<9;i++){const v=document.getElementById(`input${i}`).value.trim();if(v&&!MD[i]?.title)MD[i]={title:v,cover:'',authors:''};if(MD[i]?.title)cnt++}if(!cnt){alert('少なくとも1つマンガを入力してください');return}btn.disabled=true;ld.classList.add('active');
   for(let i=0;i<9;i++){if(MD[i]?.title&&!MD[i]?.cover){
     let found=false;
-    // Google Books
-    for(const url of[
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(MD[i].title)}&langRestrict=ja&maxResults=5&printType=books`,
-      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(MD[i].title)}&maxResults=5&printType=books`
-    ]){if(found)break;try{const res=await fetch(url);if(res.status===429||res.status===403)break;if(!res.ok)continue;const data=await res.json();const w=(data.items||[]).find(it=>it.volumeInfo?.imageLinks?.thumbnail);if(w){MD[i].cover=w.volumeInfo.imageLinks.thumbnail.replace('http://','https://');found=true}else if(data.items?.[0]?.volumeInfo?.imageLinks?.smallThumbnail){MD[i].cover=data.items[0].volumeInfo.imageLinks.smallThumbnail.replace('http://','https://');found=true}}catch(e){}}
-    // Open Library fallback
-    if(!found){try{const r=await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(MD[i].title)}&limit=5`);if(r.ok){const d=await r.json();const doc=(d.docs||[]).find(x=>x.cover_i);if(doc){MD[i].cover=`https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`;found=true}}}catch(e){}}
+    // MangaDex first
+    try{
+      const r=await fetch(`https://api.mangadex.org/manga?title=${encodeURIComponent(MD[i].title)}&limit=5&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`);
+      if(r.ok){const d=await r.json();const m=(d.data||[]).find(x=>mdCover(x));
+        if(m){MD[i].cover=mdCover(m);found=true}}
+    }catch(e){}
+    // Google Books fallback
+    if(!found){
+      for(const url of[
+        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(MD[i].title)}&langRestrict=ja&maxResults=5&printType=books`,
+        `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(MD[i].title)}&maxResults=5&printType=books`
+      ]){if(found)break;try{const res=await fetch(url);if(res.status===429||res.status===403)break;if(!res.ok)continue;const data=await res.json();const w=(data.items||[]).find(it=>it.volumeInfo?.imageLinks?.thumbnail);if(w){MD[i].cover=w.volumeInfo.imageLinks.thumbnail.replace('http://','https://');found=true}else if(data.items?.[0]?.volumeInfo?.imageLinks?.smallThumbnail){MD[i].cover=data.items[0].volumeInfo.imageLinks.smallThumbnail.replace('http://','https://');found=true}}catch(e){}}
+    }
   }}
   if(currentTheme==='sakura')genSP();buildGrid();updateName();document.getElementById('resultWrapper').classList.remove('hidden');ld.classList.remove('active');btn.disabled=false;setTimeout(()=>document.getElementById('resultWrapper').scrollIntoView({behavior:'smooth',block:'center'}),100)}
 
