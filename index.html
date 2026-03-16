@@ -314,28 +314,58 @@ function mdTitle(manga){
   const a=manga.attributes?.title||{};
   return a.ja||a['ja-ro']||a.en||Object.values(a)[0]||'';
 }
+function mdAllTitles(manga){
+  const titles=[];
+  const a=manga.attributes?.title||{};
+  Object.values(a).forEach(t=>{if(t)titles.push(t)});
+  (manga.attributes?.altTitles||[]).forEach(obj=>{Object.values(obj).forEach(t=>{if(t)titles.push(t)})});
+  return titles;
+}
 function mdAuthors(manga){
   return (manga.relationships||[]).filter(r=>r.type==='author').map(r=>r.attributes?.name).filter(Boolean).join(', ');
+}
+
+// Score how well a title matches the query (lower = better)
+function titleMatchScore(query, allTitles){
+  const q=query.toLowerCase();
+  let best=999;
+  for(const t of allTitles){
+    const tl=t.toLowerCase();
+    if(tl===q) return 0; // exact match
+    if(tl.startsWith(q)) best=Math.min(best,1); // starts with
+    if(tl.includes(q)) best=Math.min(best,2); // contains
+  }
+  return best;
 }
 
 async function sM(i,q){if(aS!==i)return;try{
   let items=[];
 
-  // ===== Strategy 1: MangaDex API (manga-specific, high accuracy) =====
+  // ===== Strategy 1: MangaDex API =====
   try{
-    const r=await fetch(`https://api.mangadex.org/manga?title=${encodeURIComponent(q)}&limit=20&includes[]=cover_art&includes[]=author&order[relevance]=desc&contentRating[]=safe&contentRating[]=suggestive`);
+    const r=await fetch(`https://api.mangadex.org/manga?title=${encodeURIComponent(q)}&limit=20&includes[]=cover_art&includes[]=author&contentRating[]=safe&contentRating[]=suggestive`);
     if(r.ok){const d=await r.json();
       if(d.data&&d.data.length){
-        items=d.data.map(m=>({
-          id:'md_'+m.id,
-          volumeInfo:{title:mdTitle(m),authors:mdAuthors(m)?[mdAuthors(m)]:[],imageLinks:mdCover(m)?{thumbnail:mdCover(m)}:null},
-          _src:'mangadex'
-        }));
+        items=d.data.map(m=>{
+          const allT=mdAllTitles(m);
+          return {
+            id:'md_'+m.id,
+            volumeInfo:{title:mdTitle(m),authors:mdAuthors(m)?[mdAuthors(m)]:[],imageLinks:mdCover(m)?{thumbnail:mdCover(m)}:null},
+            _src:'mangadex',
+            _score:titleMatchScore(q,allT)
+          };
+        });
+        items.sort((a,b)=>{
+          if(a._score!==b._score) return a._score-b._score;
+          const ai=a.volumeInfo?.imageLinks?.thumbnail?0:1,bi=b.volumeInfo?.imageLinks?.thumbnail?0:1;
+          if(ai!==bi) return ai-bi;
+          return (a.volumeInfo?.title?.length||999)-(b.volumeInfo?.title?.length||999);
+        });
       }
     }
   }catch(e){}
 
-  // ===== Strategy 2: Google Books fallback =====
+  // ===== Strategy 2: Google Books (fallback) =====
   if(!items.length){
     let googleOk=true;
     try{
@@ -351,9 +381,9 @@ async function sM(i,q){if(aS!==i)return;try{
       sP.innerHTML='<div class="sug-header">📚 検索</div><div class="sug-empty">検索APIの制限に達しました<br><span style="font-size:11px;color:#888">しばらく待つか、「画像を選択」で<br>手動アップロードしてください</span></div>';
       pS(document.getElementById(`input${i}`));sP.classList.add('show');return;
     }
+    items.sort((a,b)=>{const ai=a.volumeInfo?.imageLinks?.thumbnail?0:1,bi=b.volumeInfo?.imageLinks?.thumbnail?0:1;return ai!==bi?ai-bi:(a.volumeInfo?.title?.length||999)-(b.volumeInfo?.title?.length||999)});
   }
 
-  items.sort((a,b)=>{const ai=a.volumeInfo?.imageLinks?.thumbnail?0:1,bi=b.volumeInfo?.imageLinks?.thumbnail?0:1;return ai!==bi?ai-bi:(a.volumeInfo?.title?.length||999)-(b.volumeInfo?.title?.length||999)});
   lR[i]={q,items};if(aS===i)rS(i,items);
 }catch(e){sP.innerHTML='<div class="sug-header">📚</div><div class="sug-empty">検索に失敗しました</div>';pS(document.getElementById(`input${i}`));sP.classList.add('show')}}
 function rS(i,items){const el=document.getElementById(`input${i}`);sP.innerHTML=`<div class="sug-header">📚 検索結果（${items.length}件）</div>`;if(!items.length){sP.innerHTML+='<div class="sug-empty">見つかりませんでした</div>';pS(el);sP.classList.add('show');return}items.forEach(item=>{const info=item.volumeInfo,th=info.imageLinks?.thumbnail||info.imageLinks?.smallThumbnail||'',title=info.title||'',auth=(info.authors||[]).join(', '),src=item._src;const d=document.createElement('div');d.className='sug-item';d.innerHTML=`${th?`<img class="sug-thumb" src="${th.replace('http://','https://')}">`:'<div class="sug-no-img">📖</div>'}<div class="sug-info"><div class="sug-title">${esc(title)}</div><div class="sug-meta">${auth?`<span class="sug-author">${esc(auth)}</span>`:''}</div></div>`;d.addEventListener('mousedown',e=>{e.preventDefault();sel(i,title,th,auth)});d.addEventListener('touchend',e=>{e.preventDefault();sel(i,title,th,auth)});sP.appendChild(d)});pS(el);sP.classList.add('show')}
