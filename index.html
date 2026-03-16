@@ -121,6 +121,13 @@
   .sug-info{flex:1;min-width:0}.sug-title{font-weight:400;color:#fff;font-size:13px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
   .sug-meta{display:flex;align-items:center;gap:6px;margin-top:3px}.sug-author{font-size:10px;color:#888}
   .sug-empty{padding:20px;color:#666;text-align:center;font-size:13px}.sug-loading{padding:16px;color:#888;text-align:center;font-size:12px}
+  #coverPicker{position:fixed;background:#1a1a1a;border-radius:14px;z-index:1000;overflow-y:auto;display:none;box-shadow:0 16px 48px rgba(0,0,0,0.55),0 0 0 1px rgba(255,215,0,0.15);min-width:280px;max-height:420px;scrollbar-width:thin;scrollbar-color:#444 transparent}
+  #coverPicker.show{display:block;animation:sugFadeIn 0.15s ease}
+  .cp-grid{display:flex;flex-wrap:wrap;gap:8px;padding:12px;justify-content:center}
+  .cp-item{cursor:pointer;text-align:center;transition:transform 0.15s,box-shadow 0.15s;border-radius:6px;padding:4px}
+  .cp-item:hover{transform:scale(1.08);background:#2c2c2c}
+  .cp-item img{width:60px;height:85px;object-fit:cover;border-radius:4px;box-shadow:0 2px 6px rgba(0,0,0,0.5)}
+  .cp-item .cp-vol{font-size:10px;color:#ccc;margin-top:3px}
   .cover-cell:nth-child(1){animation-delay:.05s}.cover-cell:nth-child(2){animation-delay:.1s}.cover-cell:nth-child(3){animation-delay:.15s}.cover-cell:nth-child(4){animation-delay:.2s}.cover-cell:nth-child(5){animation-delay:.25s}.cover-cell:nth-child(6){animation-delay:.3s}.cover-cell:nth-child(7){animation-delay:.35s}.cover-cell:nth-child(8){animation-delay:.4s}.cover-cell:nth-child(9){animation-delay:.45s}
   @keyframes fadeIn{from{opacity:0;transform:scale(0.9)}to{opacity:1;transform:scale(1)}}
   .hidden{display:none!important}
@@ -160,6 +167,7 @@
 </div>
 <div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><div class="loading-text">表紙を検索中...</div></div>
 <div id="sugPanel"></div>
+<div id="coverPicker"></div>
 <input type="file" id="fileUpload" accept="image/*" style="display:none"/>
 <!-- Hidden canvas for export -->
 <canvas id="exportCanvas" style="display:none"></canvas>
@@ -401,8 +409,44 @@ async function sM(i,q){if(aS!==i)return;try{
 
   lR[i]={q,items};if(aS===i)rS(i,items);
 }catch(e){sP.innerHTML='<div class="sug-header">📚</div><div class="sug-empty">検索に失敗しました</div>';pS(document.getElementById(`input${i}`));sP.classList.add('show')}}
-function rS(i,items){const el=document.getElementById(`input${i}`);sP.innerHTML=`<div class="sug-header">📚 検索結果（${items.length}件）</div>`;if(!items.length){sP.innerHTML+='<div class="sug-empty">見つかりませんでした</div>';pS(el);sP.classList.add('show');return}items.forEach(item=>{const info=item.volumeInfo,th=info.imageLinks?.thumbnail||info.imageLinks?.smallThumbnail||'',title=info.title||'',auth=(info.authors||[]).join(', ');const d=document.createElement('div');d.className='sug-item';d.innerHTML=`${th?`<img class="sug-thumb" src="${proxyImg(th)}">`:'<div class="sug-no-img">📖</div>'}<div class="sug-info"><div class="sug-title">${esc(title)}</div><div class="sug-meta">${auth?`<span class="sug-author">${esc(auth)}</span>`:''}</div></div>`;d.addEventListener('mousedown',e=>{e.preventDefault();sel(i,title,th,auth)});d.addEventListener('touchend',e=>{e.preventDefault();sel(i,title,th,auth)});sP.appendChild(d)});pS(el);sP.classList.add('show')}
-function sel(i,title,cover,auth){document.getElementById(`input${i}`).value=title;document.getElementById(`input${i}`).classList.add('has-cover');MD[i]={title,cover:cover?cover.replace('http://','https://'):'' ,authors:auth};mIS=false;cS();const n=document.getElementById(`input${(i+1)%9}`);if(n&&!n.value)n.focus()}
+function rS(i,items){const el=document.getElementById(`input${i}`);sP.innerHTML=`<div class="sug-header">📚 検索結果（${items.length}件）</div>`;if(!items.length){sP.innerHTML+='<div class="sug-empty">見つかりませんでした</div>';pS(el);sP.classList.add('show');return}items.forEach(item=>{const info=item.volumeInfo,th=info.imageLinks?.thumbnail||info.imageLinks?.smallThumbnail||'',title=info.title||'',auth=(info.authors||[]).join(', '),iid=item.id||'';const d=document.createElement('div');d.className='sug-item';d.innerHTML=`${th?`<img class="sug-thumb" src="${proxyImg(th)}">`:'<div class="sug-no-img">📖</div>'}<div class="sug-info"><div class="sug-title">${esc(title)}</div><div class="sug-meta">${auth?`<span class="sug-author">${esc(auth)}</span>`:''}</div></div>`;d.addEventListener('mousedown',e=>{e.preventDefault();sel(i,title,th,auth,iid)});d.addEventListener('touchend',e=>{e.preventDefault();sel(i,title,th,auth,iid)});sP.appendChild(d)});pS(el);sP.classList.add('show')}
+const cPP=document.getElementById('coverPicker');
+function closeCoverPicker(){cPP.classList.remove('show')}
+function sel(i,title,cover,auth,iid){
+  const el=document.getElementById(`input${i}`);
+  el.value=title;el.classList.add('has-cover');
+  MD[i]={title,cover:cover?cover.replace('http://','https://'):'' ,authors:auth};
+  mIS=false;cS();
+  // If MangaDex item, show cover picker
+  if(iid&&iid.startsWith('md_')){const mangaId=iid.slice(3);
+    cPP.innerHTML='<div class="sug-header">📖 巻を選択（読み込み中...）</div>';
+    const r2=el.getBoundingClientRect();const pw=Math.max(300,r2.width*1.8);let l=r2.left+r2.width/2-pw/2;l=Math.max(8,Math.min(l,window.innerWidth-pw-8));
+    cPP.style.top=(r2.bottom+6)+'px';cPP.style.left=l+'px';cPP.style.width=pw+'px';cPP.classList.add('show');
+    fetch(`/api/manga-cover?mangaId=${mangaId}&limit=30`).then(r=>r.ok?r.json():null).then(d=>{
+      if(!d?.data?.length){closeCoverPicker();return}
+      cPP.innerHTML='<div class="sug-header">📖 巻の表紙を選択</div><div class="cp-grid"></div>';
+      const grid=cPP.querySelector('.cp-grid');
+      d.data.forEach(cv=>{
+        const fn=cv.attributes?.fileName;const vol=cv.attributes?.volume||'?';
+        if(!fn)return;
+        const url=`https://uploads.mangadex.org/covers/${mangaId}/${fn}.256.jpg`;
+        const item=document.createElement('div');item.className='cp-item';
+        item.innerHTML=`<img src="${proxyImg(url)}"><div class="cp-vol">${esc(vol+'巻')}</div>`;
+        item.addEventListener('mousedown',e=>{e.preventDefault();
+          MD[i].cover=`https://uploads.mangadex.org/covers/${mangaId}/${fn}.512.jpg`;
+          closeCoverPicker();const n=document.getElementById(`input${(i+1)%9}`);if(n&&!n.value)n.focus();
+        });
+        item.addEventListener('touchend',e=>{e.preventDefault();
+          MD[i].cover=`https://uploads.mangadex.org/covers/${mangaId}/${fn}.512.jpg`;
+          closeCoverPicker();const n=document.getElementById(`input${(i+1)%9}`);if(n&&!n.value)n.focus();
+        });
+        grid.appendChild(item);
+      });
+    }).catch(()=>closeCoverPicker());
+  } else {
+    const n=document.getElementById(`input${(i+1)%9}`);if(n&&!n.value)n.focus();
+  }
+}
 
 async function generate(){const btn=document.getElementById('btnGenerate'),ld=document.getElementById('loadingOverlay');let cnt=0;for(let i=0;i<9;i++){const v=document.getElementById(`input${i}`).value.trim();if(v&&!MD[i]?.title)MD[i]={title:v,cover:'',authors:''};if(MD[i]?.title)cnt++}if(!cnt){alert('少なくとも1つマンガを入力してください');return}btn.disabled=true;ld.classList.add('active');
   for(let i=0;i<9;i++){if(MD[i]?.title&&!MD[i]?.cover){
@@ -429,7 +473,8 @@ if(m?.cover){const hr=m.cover.startsWith('data:')?m.cover:m.cover.replace('zoom=
 cell.addEventListener('dragstart',e=>{dSrc=gp;cell.classList.add('dragging');e.dataTransfer.effectAllowed='move'});cell.addEventListener('dragend',()=>{cell.classList.remove('dragging');document.querySelectorAll('.cover-cell').forEach(c=>c.classList.remove('drag-over'));dSrc=null});cell.addEventListener('dragover',e=>{e.preventDefault();if(dSrc!==null&&dSrc!==gp)cell.classList.add('drag-over')});cell.addEventListener('dragleave',()=>cell.classList.remove('drag-over'));cell.addEventListener('drop',e=>{e.preventDefault();cell.classList.remove('drag-over');if(dSrc===null||dSrc===gp)return;const t=gO[dSrc];gO[dSrc]=gO[gp];gO[gp]=t;buildGrid()});
 let tc=null;cell.addEventListener('touchstart',e=>{if(e.target.closest('.upload-btn')||e.target.closest('.upload-overlay'))return;dSrc=gp},{passive:true});cell.addEventListener('touchmove',e=>{if(dSrc===null)return;e.preventDefault();const touch=e.touches[0];if(!tc){tc=cell.cloneNode(true);tc.style.cssText=`position:fixed;z-index:1000;pointer-events:none;opacity:0.8;width:${cell.offsetWidth}px;height:${cell.offsetHeight}px;`;document.body.appendChild(tc);cell.classList.add('dragging')}tc.style.left=(touch.clientX-cell.offsetWidth/2)+'px';tc.style.top=(touch.clientY-cell.offsetHeight/2)+'px';document.querySelectorAll('.cover-cell').forEach(c=>c.classList.remove('drag-over'));const el=document.elementFromPoint(touch.clientX,touch.clientY);const tgt=el?.closest('.cover-cell');if(tgt&&tgt!==cell)tgt.classList.add('drag-over')},{passive:false});cell.addEventListener('touchend',e=>{if(tc){document.body.removeChild(tc);tc=null}cell.classList.remove('dragging');document.querySelectorAll('.cover-cell').forEach(c=>c.classList.remove('drag-over'));if(dSrc===null)return;const touch=e.changedTouches[0];const el=document.elementFromPoint(touch.clientX,touch.clientY);const tgt=el?.closest('.cover-cell');if(tgt){const tp=parseInt(tgt.dataset.gridpos);if(!isNaN(tp)&&tp!==dSrc){const t=gO[dSrc];gO[dSrc]=gO[tp];gO[tp]=t;buildGrid()}}dSrc=null});cg.appendChild(cell)})}
 function trigUp(di){uI=di;fU.click()}
-window.addEventListener('scroll',()=>{if(!mIS)cS()});window.addEventListener('resize',cS);
+window.addEventListener('scroll',()=>{if(!mIS)cS()});window.addEventListener('resize',()=>{cS();closeCoverPicker()});
+document.addEventListener('mousedown',e=>{if(!cPP.contains(e.target))closeCoverPicker()});
 </script>
 </body>
 </html>

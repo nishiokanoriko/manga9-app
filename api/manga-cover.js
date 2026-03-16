@@ -1,5 +1,5 @@
 export default async function handler(req, res) {
-  const { mangaId } = req.query;
+  const { mangaId, limit } = req.query;
   if (!mangaId) {
     return res.status(400).json({ error: 'mangaId parameter is required' });
   }
@@ -8,7 +8,7 @@ export default async function handler(req, res) {
     const params = new URLSearchParams();
     params.append('manga[]', mangaId);
     params.set('order[volume]', 'asc');
-    params.set('limit', '1');
+    params.set('limit', limit || '10');
 
     const response = await fetch(
       `https://api.mangadex.org/cover?${params.toString()}`
