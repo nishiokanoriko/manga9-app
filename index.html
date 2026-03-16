@@ -342,6 +342,12 @@ function titleMatchScore(query, allTitles){
   }
   return best;
 }
+// Detect special/variant editions (lower = more normal)
+const _spRe=/fan.?colou?r|full.?colou?r|カラー版|オールカラー|フルカラー|愛蔵版|特装版|完全版|文庫版|新装版|豪華版|限定版|digital.?colou?r|colou?red|deluxe|omnibus/i;
+function editionPenalty(allTitles){
+  for(const t of allTitles){if(_spRe.test(t)) return 1}
+  return 0;
+}
 
 async function sM(i,q){if(aS!==i)return;try{
   let items=[];
@@ -357,15 +363,21 @@ async function sM(i,q){if(aS!==i)return;try{
             id:'md_'+m.id,
             volumeInfo:{title:mdTitle(m),authors:mdAuthors(m)?[mdAuthors(m)]:[],imageLinks:mdCover(m)?{thumbnail:mdCover(m)}:null},
             _src:'mangadex',
-            _score:titleMatchScore(q,allT)
+            _score:titleMatchScore(q,allT),
+            _edition:editionPenalty(allT)
           };
         });
         items.sort((a,b)=>{
           if(a._score!==b._score) return a._score-b._score;
+          if(a._edition!==b._edition) return a._edition-b._edition;
+          const tl=((a.volumeInfo?.title||'').length|0)-((b.volumeInfo?.title||'').length|0);
+          if(tl!==0) return tl;
           const ai=a.volumeInfo?.imageLinks?.thumbnail?0:1,bi=b.volumeInfo?.imageLinks?.thumbnail?0:1;
-          if(ai!==bi) return ai-bi;
-          return (a.volumeInfo?.title?.length||999)-(b.volumeInfo?.title?.length||999);
+          return ai-bi;
         });
+        // Deduplicate by Japanese title, keep first (normal edition)
+        const seen=new Set();
+        items=items.filter(x=>{const t=x.volumeInfo?.title||'';if(!t)return true;if(seen.has(t))return false;seen.add(t);return true});
       }
     }
   }catch(e){}
