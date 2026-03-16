@@ -346,7 +346,13 @@ async function sM(i,q){if(aS!==i)return;try{
   try{
     const r=await fetch(`https://api.mangadex.org/manga?title=${encodeURIComponent(q)}&limit=20&includes[]=cover_art&includes[]=author&order[relevance]=desc&contentRating[]=safe&contentRating[]=suggestive`);
     if(r.ok){const d=await r.json();
+      console.log('[DEBUG] MangaDex API raw response for query:', q, 'total:', d.data?.length);
       if(d.data&&d.data.length){
+        d.data.forEach((m,idx)=>{
+          const allT=mdAllTitles(m);
+          const score=titleMatchScore(q,allT);
+          console.log(`[DEBUG] #${idx} title="${mdTitle(m)}" allTitles=`,allT,`score=${score} cover=${mdCover(m)?'YES':'NO'}`);
+        });
         items=d.data.map(m=>{
           const allT=mdAllTitles(m);
           return {
@@ -362,6 +368,7 @@ async function sM(i,q){if(aS!==i)return;try{
           if(ai!==bi) return ai-bi;
           return (a.volumeInfo?.title?.length||999)-(b.volumeInfo?.title?.length||999);
         });
+        console.log('[DEBUG] Sorted results:', items.map(x=>`${x.volumeInfo.title} (score=${x._score})`));
       }
     }
   }catch(e){}
@@ -396,8 +403,8 @@ async function generate(){const btn=document.getElementById('btnGenerate'),ld=do
     // MangaDex first
     try{
       const r=await fetch(`https://api.mangadex.org/manga?title=${encodeURIComponent(MD[i].title)}&limit=5&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`);
-      if(r.ok){const d=await r.json();const m=(d.data||[]).find(x=>mdCover(x));
-        if(m){MD[i].cover=mdCover(m);found=true}}
+      if(r.ok){const d=await r.json();console.log(`[DEBUG] generate() slot=${i} title="${MD[i].title}" mangadex results:`,d.data?.length);const m=(d.data||[]).find(x=>mdCover(x));
+        if(m){MD[i].cover=mdCover(m);found=true;console.log(`[DEBUG] generate() slot=${i} cover found:`,MD[i].cover)}else{console.log(`[DEBUG] generate() slot=${i} no cover found in MangaDex results`)}}
     }catch(e){}
     // Google Books fallback
     if(!found){
@@ -411,7 +418,7 @@ async function generate(){const btn=document.getElementById('btnGenerate'),ld=do
 
 let gO=[0,1,2,3,4,5,6,7,8],dSrc=null;
 function buildGrid(){const cg=document.getElementById('coverGrid');cg.innerHTML='';gO.forEach((di,gp)=>{const cell=document.createElement('div');cell.className='cover-cell';cell.draggable=true;cell.dataset.gridpos=gp;const m=MD[di];
-if(m?.cover){const hr=m.cover.startsWith('data:')?m.cover:m.cover.replace('zoom=1','zoom=2').replace('&edge=curl','');cell.innerHTML=`<img src="${hr}" alt="${esc(m.title||'')}" crossorigin="anonymous" referrerpolicy="no-referrer" onerror="this.onerror=null;this.src='${m.cover}'"/><div class="upload-overlay" onclick="trigUp(${di})"><span>📁 画像を変更</span></div><div class="cover-title-overlay">${esc(m.title||'')}</div>`}else if(m?.title){cell.innerHTML=`<div class="cover-placeholder">${esc(m.title)}<label class="upload-btn" onclick="trigUp(${di})">📁 画像を選択</label></div>`}else{cell.innerHTML=`<div class="cover-placeholder">?</div>`}
+if(m?.cover){const hr=m.cover.startsWith('data:')?m.cover:m.cover.replace('zoom=1','zoom=2').replace('&edge=curl','');console.log(`[DEBUG] buildGrid slot=${di} title="${m.title}" cover_url="${hr}"`);cell.innerHTML=`<img src="${hr}" alt="${esc(m.title||'')}" crossorigin="anonymous" referrerpolicy="no-referrer" onerror="console.error('[DEBUG] IMG LOAD FAILED url=',this.src,'title=${esc(m.title||'')}');this.onerror=null;this.src='${m.cover}'"/><div class="upload-overlay" onclick="trigUp(${di})"><span>📁 画像を変更</span></div><div class="cover-title-overlay">${esc(m.title||'')}</div>`}else if(m?.title){cell.innerHTML=`<div class="cover-placeholder">${esc(m.title)}<label class="upload-btn" onclick="trigUp(${di})">📁 画像を選択</label></div>`}else{cell.innerHTML=`<div class="cover-placeholder">?</div>`}
 cell.addEventListener('dragstart',e=>{dSrc=gp;cell.classList.add('dragging');e.dataTransfer.effectAllowed='move'});cell.addEventListener('dragend',()=>{cell.classList.remove('dragging');document.querySelectorAll('.cover-cell').forEach(c=>c.classList.remove('drag-over'));dSrc=null});cell.addEventListener('dragover',e=>{e.preventDefault();if(dSrc!==null&&dSrc!==gp)cell.classList.add('drag-over')});cell.addEventListener('dragleave',()=>cell.classList.remove('drag-over'));cell.addEventListener('drop',e=>{e.preventDefault();cell.classList.remove('drag-over');if(dSrc===null||dSrc===gp)return;const t=gO[dSrc];gO[dSrc]=gO[gp];gO[gp]=t;buildGrid()});
 let tc=null;cell.addEventListener('touchstart',e=>{if(e.target.closest('.upload-btn')||e.target.closest('.upload-overlay'))return;dSrc=gp},{passive:true});cell.addEventListener('touchmove',e=>{if(dSrc===null)return;e.preventDefault();const touch=e.touches[0];if(!tc){tc=cell.cloneNode(true);tc.style.cssText=`position:fixed;z-index:1000;pointer-events:none;opacity:0.8;width:${cell.offsetWidth}px;height:${cell.offsetHeight}px;`;document.body.appendChild(tc);cell.classList.add('dragging')}tc.style.left=(touch.clientX-cell.offsetWidth/2)+'px';tc.style.top=(touch.clientY-cell.offsetHeight/2)+'px';document.querySelectorAll('.cover-cell').forEach(c=>c.classList.remove('drag-over'));const el=document.elementFromPoint(touch.clientX,touch.clientY);const tgt=el?.closest('.cover-cell');if(tgt&&tgt!==cell)tgt.classList.add('drag-over')},{passive:false});cell.addEventListener('touchend',e=>{if(tc){document.body.removeChild(tc);tc=null}cell.classList.remove('dragging');document.querySelectorAll('.cover-cell').forEach(c=>c.classList.remove('drag-over'));if(dSrc===null)return;const touch=e.changedTouches[0];const el=document.elementFromPoint(touch.clientX,touch.clientY);const tgt=el?.closest('.cover-cell');if(tgt){const tp=parseInt(tgt.dataset.gridpos);if(!isNaN(tp)&&tp!==dSrc){const t=gO[dSrc];gO[dSrc]=gO[tp];gO[tp]=t;buildGrid()}}dSrc=null});cg.appendChild(cell)})}
 function trigUp(di){uI=di;fU.click()}
