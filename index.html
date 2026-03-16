@@ -313,7 +313,10 @@ function mdCover(manga){
 }
 function mdTitle(manga){
   const a=manga.attributes?.title||{};
-  return a.ja||a['ja-ro']||a.en||Object.values(a)[0]||'';
+  if(a.ja) return a.ja;
+  const alt=(manga.attributes?.altTitles||[]);
+  for(const obj of alt){if(obj.ja) return obj.ja}
+  return a['ja-ro']||a.en||Object.values(a)[0]||'';
 }
 function mdAllTitles(manga){
   const titles=[];
@@ -412,7 +415,7 @@ async function generate(){const btn=document.getElementById('btnGenerate'),ld=do
 
 let gO=[0,1,2,3,4,5,6,7,8],dSrc=null;
 function buildGrid(){const cg=document.getElementById('coverGrid');cg.innerHTML='';gO.forEach((di,gp)=>{const cell=document.createElement('div');cell.className='cover-cell';cell.draggable=true;cell.dataset.gridpos=gp;const m=MD[di];
-if(m?.cover){const hr=m.cover.startsWith('data:')?m.cover:m.cover.replace('zoom=1','zoom=2').replace('&edge=curl','');const phr=proxyImg(hr);cell.innerHTML=`<img src="${phr}" alt="${esc(m.title||'')}" crossorigin="anonymous" onerror="this.onerror=null;this.src='${proxyImg(m.cover)}'"/><div class="upload-overlay" onclick="trigUp(${di})"><span>📁 画像を変更</span></div><div class="cover-title-overlay">${esc(m.title||'')}</div>`}else if(m?.title){cell.innerHTML=`<div class="cover-placeholder">${esc(m.title)}<label class="upload-btn" onclick="trigUp(${di})">📁 画像を選択</label></div>`}else{cell.innerHTML=`<div class="cover-placeholder">?</div>`}
+if(m?.cover){const hr=m.cover.startsWith('data:')?m.cover:m.cover.replace('zoom=1','zoom=2').replace('&edge=curl','');const phr=proxyImg(hr);cell.innerHTML=`<img src="${phr}" alt="${esc(m.title||'')}" onerror="this.onerror=null;this.src='${proxyImg(m.cover)}'"/><div class="upload-overlay" onclick="trigUp(${di})"><span>📁 画像を変更</span></div><div class="cover-title-overlay">${esc(m.title||'')}</div>`}else if(m?.title){cell.innerHTML=`<div class="cover-placeholder">${esc(m.title)}<label class="upload-btn" onclick="trigUp(${di})">📁 画像を選択</label></div>`}else{cell.innerHTML=`<div class="cover-placeholder">?</div>`}
 cell.addEventListener('dragstart',e=>{dSrc=gp;cell.classList.add('dragging');e.dataTransfer.effectAllowed='move'});cell.addEventListener('dragend',()=>{cell.classList.remove('dragging');document.querySelectorAll('.cover-cell').forEach(c=>c.classList.remove('drag-over'));dSrc=null});cell.addEventListener('dragover',e=>{e.preventDefault();if(dSrc!==null&&dSrc!==gp)cell.classList.add('drag-over')});cell.addEventListener('dragleave',()=>cell.classList.remove('drag-over'));cell.addEventListener('drop',e=>{e.preventDefault();cell.classList.remove('drag-over');if(dSrc===null||dSrc===gp)return;const t=gO[dSrc];gO[dSrc]=gO[gp];gO[gp]=t;buildGrid()});
 let tc=null;cell.addEventListener('touchstart',e=>{if(e.target.closest('.upload-btn')||e.target.closest('.upload-overlay'))return;dSrc=gp},{passive:true});cell.addEventListener('touchmove',e=>{if(dSrc===null)return;e.preventDefault();const touch=e.touches[0];if(!tc){tc=cell.cloneNode(true);tc.style.cssText=`position:fixed;z-index:1000;pointer-events:none;opacity:0.8;width:${cell.offsetWidth}px;height:${cell.offsetHeight}px;`;document.body.appendChild(tc);cell.classList.add('dragging')}tc.style.left=(touch.clientX-cell.offsetWidth/2)+'px';tc.style.top=(touch.clientY-cell.offsetHeight/2)+'px';document.querySelectorAll('.cover-cell').forEach(c=>c.classList.remove('drag-over'));const el=document.elementFromPoint(touch.clientX,touch.clientY);const tgt=el?.closest('.cover-cell');if(tgt&&tgt!==cell)tgt.classList.add('drag-over')},{passive:false});cell.addEventListener('touchend',e=>{if(tc){document.body.removeChild(tc);tc=null}cell.classList.remove('dragging');document.querySelectorAll('.cover-cell').forEach(c=>c.classList.remove('drag-over'));if(dSrc===null)return;const touch=e.changedTouches[0];const el=document.elementFromPoint(touch.clientX,touch.clientY);const tgt=el?.closest('.cover-cell');if(tgt){const tp=parseInt(tgt.dataset.gridpos);if(!isNaN(tp)&&tp!==dSrc){const t=gO[dSrc];gO[dSrc]=gO[tp];gO[tp]=t;buildGrid()}}dSrc=null});cg.appendChild(cell)})}
 function trigUp(di){uI=di;fU.click()}
