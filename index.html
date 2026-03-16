@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>私を構成する9つのマンガ</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=Zen+Maru+Gothic:wght@400;500;700&family=Noto+Serif+JP:wght@400;500&family=Noto+Sans+JP:wght@400;500&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Noto Sans JP',sans-serif;font-weight:400;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px;-webkit-user-select:none;user-select:none;transition:background 0.5s;overflow-x:hidden}
+  body.theme-yellow{background:#FFD700}
+  body.theme-sakura{background:#fdf0f4}
+  body.theme-palace{background:#0f2b1e;background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 5c4 4 10 8 10 15s-6 11-10 15c-4-4-10-8-10-15s6-11 10-15z' fill='none' stroke='rgba(180,160,80,0.07)' stroke-width='1'/%3E%3C/svg%3E"),radial-gradient(ellipse at 50% 0%,rgba(180,160,80,0.08) 0%,transparent 60%)}
+  #sakuraCanvas{position:fixed;inset:0;z-index:-1;pointer-events:none;display:none}
+  body.theme-sakura #sakuraCanvas{display:block}
+  h1{font-size:clamp(1.2rem,3.2vw,1.8rem);margin-bottom:14px;text-align:center;letter-spacing:0.03em;font-weight:400}
+  body.theme-yellow h1{font-family:'Dela Gothic One',cursive;color:#1a1a1a}
+  body.theme-sakura h1{font-family:'Zen Maru Gothic',sans-serif;font-weight:700;color:#c2185b}
+  body.theme-palace h1{font-family:'Noto Serif JP',serif;color:#d4a24e;text-shadow:0 1px 4px rgba(0,0,0,0.5)}
+  .app-container{width:100%;max-width:640px;display:flex;flex-direction:column;align-items:center;gap:12px}
+  .theme-selector{display:flex;gap:10px;align-items:center;margin-bottom:2px}
+  .theme-selector label{font-size:12px;font-weight:400}
+  body.theme-palace .theme-selector label{color:#d4a24e}
+  body.theme-sakura .theme-selector label{color:#ad1457}
+  .theme-btn{width:36px;height:36px;border-radius:50%;border:3px solid rgba(0,0,0,0.15);cursor:pointer;transition:all 0.2s}
+  .theme-btn:hover{transform:scale(1.1)}
+  .theme-btn.active{border-color:#1a1a1a;box-shadow:0 0 0 2px #fff,0 0 0 4px #1a1a1a}
+  body.theme-palace .theme-btn.active{border-color:#d4a24e;box-shadow:0 0 0 2px #0f2b1e,0 0 0 4px #d4a24e}
+  .theme-btn.t-yellow{background:#FFD700}.theme-btn.t-sakura{background:linear-gradient(135deg,#fce4ec,#f48fb1)}.theme-btn.t-palace{background:linear-gradient(135deg,#0f2b1e,#d4a24e)}
+  .name-row{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:400}
+  body.theme-sakura .name-row{color:#ad1457;font-family:'Zen Maru Gothic',sans-serif;font-weight:500}
+  body.theme-palace .name-row{color:#d4a24e;font-family:'Noto Serif JP',serif}
+  .name-row input{width:80px;padding:4px 8px;border:2px dashed rgba(0,0,0,0.2);border-radius:8px;font-size:14px;font-weight:500;text-align:center;background:rgba(255,255,255,0.7);color:#1a1a1a;outline:none;-webkit-user-select:text;user-select:text;font-family:inherit}
+  .name-row input::placeholder{color:rgba(0,0,0,0.4);font-weight:500}
+  body.theme-sakura .name-row input::placeholder{color:rgba(194,24,91,0.4)}
+  body.theme-palace .name-row input::placeholder{color:rgba(212,162,78,0.5)}
+  body.theme-palace .name-row input{background:rgba(212,162,78,0.12);color:#d4a24e;border-color:rgba(212,162,78,0.3)}
+  .input-section{width:100%;border-radius:16px;padding:20px;backdrop-filter:blur(10px);transition:all 0.4s}
+  body.theme-yellow .input-section{background:rgba(0,0,0,0.07)}
+  body.theme-sakura .input-section{background:rgba(194,24,91,0.06);border:1px solid rgba(244,143,177,0.2)}
+  body.theme-palace .input-section{background:rgba(212,162,78,0.06);border:1px solid rgba(212,162,78,0.15)}
+  .input-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+  .input-cell{position:relative}
+  .input-cell input{width:100%;padding:10px 12px;border:2px solid rgba(0,0,0,0.1);border-radius:10px;font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:400;background:#fff;color:#1a1a1a;outline:none;transition:all 0.2s;text-align:center;-webkit-user-select:text;user-select:text}
+  body.theme-sakura .input-cell input{border-color:rgba(194,24,91,0.2);background:#fff8f9}
+  body.theme-sakura .input-cell input:focus{border-color:#c2185b;box-shadow:0 0 0 3px rgba(194,24,91,0.1)}
+  body.theme-sakura .input-cell input.has-cover{border-color:#e91e63;background:#fce4ec}
+  body.theme-palace .input-cell input{border-color:rgba(212,162,78,0.25);background:#f9f5ec;color:#3e2723}
+  body.theme-palace .input-cell input:focus{border-color:#d4a24e;box-shadow:0 0 0 3px rgba(212,162,78,0.15)}
+  body.theme-palace .input-cell input.has-cover{border-color:#8b6914;background:#f5edd5}
+  .input-cell input::placeholder{color:#bbb;font-weight:400}
+  body.theme-sakura .input-cell input::placeholder{color:#e0a0b0}
+  body.theme-palace .input-cell input::placeholder{color:#b8a080}
+  .input-cell input:focus{border-color:#1a1a1a;box-shadow:0 0 0 3px rgba(0,0,0,0.06)}
+  .input-cell input.has-cover{border-color:#b8860b;background:#fef9e7}
+  body.theme-yellow .input-cell input.has-cover{border-color:#1a1a1a;background:#fff8dc}
+  .cell-num{position:absolute;top:-6px;left:-4px;background:#1a1a1a;color:#FFD700;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;z-index:2}
+  body.theme-sakura .cell-num{background:#c2185b;color:#fff}
+  body.theme-palace .cell-num{background:#8b6914;color:#fff}
+  .btn-generate,.btn-download,.btn-copy{display:block;border:none;border-radius:12px;font-size:15px;cursor:pointer;transition:all 0.2s;letter-spacing:0.06em}
+  .btn-generate{width:100%;margin-top:14px;padding:14px}
+  body.theme-yellow .btn-generate{background:#1a1a1a;color:#FFD700;font-family:'Dela Gothic One',cursive}
+  body.theme-sakura .btn-generate{background:#c2185b;color:#fff;font-family:'Zen Maru Gothic',sans-serif;font-weight:700}
+  body.theme-palace .btn-generate{background:linear-gradient(135deg,#8b6914,#d4a24e);color:#0f2b1e;font-family:'Noto Serif JP',serif;font-weight:500}
+  .btn-generate:hover,.btn-download:hover,.btn-copy:hover{transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,0,0,0.2)}
+  .btn-generate:disabled,.btn-download:disabled,.btn-copy:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+  .btn-row{display:flex;gap:8px;margin-top:10px;width:100%}
+  .btn-row .btn-download,.btn-row .btn-copy{flex:1}
+  .btn-download,.btn-copy{padding:12px;font-size:13px}
+  body.theme-yellow .btn-download,body.theme-yellow .btn-copy{background:transparent;border:2px solid #1a1a1a;color:#1a1a1a;font-family:'Dela Gothic One',cursive}
+  body.theme-sakura .btn-download,body.theme-sakura .btn-copy{background:transparent;border:2px solid #c2185b;color:#c2185b;font-family:'Zen Maru Gothic',sans-serif;font-weight:700}
+  body.theme-palace .btn-download,body.theme-palace .btn-copy{background:transparent;border:2px solid #d4a24e;color:#d4a24e;font-family:'Noto Serif JP',serif}
+  .result-wrapper{width:100%;max-width:540px}
+  .result-card{border-radius:16px;padding:16px;box-shadow:0 8px 32px rgba(0,0,0,0.3);overflow:visible;transition:all 0.4s;position:relative}
+  body.theme-yellow .result-card{background:#1a1a1a}
+  body.theme-sakura .result-card{background:#fff5f7;border:2px solid #f48fb1}
+  body.theme-palace .result-card{background:#0f2b1e;border:2px solid rgba(212,162,78,0.3);background-image:url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M30 5c4 4 10 8 10 15s-6 11-10 15c-4-4-10-8-10-15s6-11 10-15z' fill='none' stroke='rgba(180,160,80,0.06)' stroke-width='1'/%3E%3C/svg%3E")}
+  .sakura-bg{display:none;position:absolute;inset:0;overflow:hidden;pointer-events:none;border-radius:14px}
+  body.theme-sakura .sakura-bg{display:block}
+  .result-title-row{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:14px;position:relative;z-index:1}
+  .sakura-icon{display:none;flex-shrink:0}
+  body.theme-sakura .sakura-icon{display:block}
+  .result-title{font-size:clamp(0.9rem,2.6vw,1.15rem);text-align:center;letter-spacing:0.04em;position:relative;z-index:1;font-weight:400}
+  body.theme-yellow .result-title{font-family:'Dela Gothic One',cursive;color:#FFD700}
+  body.theme-sakura .result-title{font-family:'Zen Maru Gothic',sans-serif;font-weight:700;color:#c2185b}
+  body.theme-palace .result-title{font-family:'Noto Serif JP',serif;color:#d4a24e}
+  .cover-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;position:relative;z-index:1}
+  body.theme-palace .cover-grid{gap:20px;padding:8px}
+  .cover-cell{aspect-ratio:3/4.2;background:#2a2a2a;border-radius:6px;overflow:hidden;position:relative;animation:fadeIn 0.4s ease both;cursor:grab;transition:transform 0.15s,box-shadow 0.15s}
+  body.theme-sakura .cover-cell{background:#fce4ec}
+  body.theme-palace .cover-cell{background:#0a1f14;border-radius:0;overflow:visible;border:10px solid transparent;border-image:linear-gradient(135deg,#c9952c,#f5e6a3 15%,#a0722c 30%,#dbc078 45%,#8b6914 55%,#dbc078 70%,#a0722c 85%,#f5e6a3 95%,#c9952c) 1;box-shadow:0 0 0 1px rgba(120,90,30,0.5),0 6px 24px rgba(0,0,0,0.7)}
+  .cover-cell.dragging{opacity:0.4;transform:scale(0.95)}
+  .cover-cell.drag-over{box-shadow:0 0 0 3px #FFD700;transform:scale(1.03)}
+  .cover-cell img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+  .upload-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);opacity:0;transition:opacity 0.2s;cursor:pointer;z-index:5}
+  .cover-cell:hover .upload-overlay{opacity:1}
+  .upload-overlay span{padding:6px 12px;background:rgba(255,255,255,0.9);border-radius:8px;font-size:10px;font-weight:500;color:#333}
+  .cover-placeholder{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#666;font-size:11px;text-align:center;padding:8px;font-weight:400;gap:6px}
+  body.theme-palace .cover-placeholder{color:#8d6e63}
+  .upload-btn{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:8px;border:1.5px dashed #999;background:rgba(255,255,255,0.1);color:#888;font-size:10px;font-weight:500;cursor:pointer;transition:all 0.2s}
+  .cover-title-overlay{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,0.85));color:#fff;padding:20px 6px 6px;font-size:10px;font-weight:400;text-align:center;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:3}
+  .cover-cell:hover .cover-title-overlay{opacity:1}
+  .hints{text-align:center;margin-top:10px;font-size:11px;font-weight:400;line-height:1.8}
+  body.theme-yellow .hints{color:rgba(0,0,0,0.35)}
+  body.theme-sakura .hints{color:rgba(136,14,79,0.4)}
+  body.theme-palace .hints{color:rgba(212,162,78,0.3)}
+  .loading-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity 0.3s}
+  .loading-overlay.active{opacity:1;pointer-events:all}
+  .spinner{width:48px;height:48px;border:4px solid rgba(255,215,0,0.3);border-top-color:#FFD700;border-radius:50%;animation:spin 0.8s linear infinite}
+  .loading-text{color:#FFD700;margin-top:16px;font-weight:400;font-size:14px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  #sugPanel{position:fixed;background:#1a1a1a;border-radius:14px;z-index:999;overflow-y:auto;display:none;box-shadow:0 16px 48px rgba(0,0,0,0.55),0 0 0 1px rgba(255,215,0,0.15);min-width:280px;scrollbar-width:thin;scrollbar-color:#444 transparent}
+  #sugPanel::-webkit-scrollbar{width:6px}#sugPanel::-webkit-scrollbar-track{background:transparent}#sugPanel::-webkit-scrollbar-thumb{background:#444;border-radius:3px}
+  #sugPanel.show{display:block;animation:sugFadeIn 0.15s ease}
+  @keyframes sugFadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:translateY(0)}}
+  .sug-header{padding:12px 16px 8px;font-size:10px;font-weight:500;color:#FFD700;text-transform:uppercase;letter-spacing:0.12em;border-bottom:1px solid #2a2a2a;position:sticky;top:0;background:#1a1a1a;z-index:1}
+  .sug-item{padding:10px 16px;cursor:pointer;display:flex;align-items:center;gap:12px;transition:background 0.15s;border-bottom:1px solid #252525}
+  .sug-item:last-child{border-bottom:none}.sug-item:hover{background:#2c2c2c}
+  .sug-thumb{width:36px;height:50px;object-fit:cover;border-radius:4px;flex-shrink:0;box-shadow:0 2px 6px rgba(0,0,0,0.5)}
+  .sug-no-img{width:36px;height:50px;background:#2a2a2a;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;color:#444}
+  .sug-info{flex:1;min-width:0}.sug-title{font-weight:400;color:#fff;font-size:13px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .sug-meta{display:flex;align-items:center;gap:6px;margin-top:3px}.sug-author{font-size:10px;color:#888}
+  .sug-empty{padding:20px;color:#666;text-align:center;font-size:13px}.sug-loading{padding:16px;color:#888;text-align:center;font-size:12px}
+  .cover-cell:nth-child(1){animation-delay:.05s}.cover-cell:nth-child(2){animation-delay:.1s}.cover-cell:nth-child(3){animation-delay:.15s}.cover-cell:nth-child(4){animation-delay:.2s}.cover-cell:nth-child(5){animation-delay:.25s}.cover-cell:nth-child(6){animation-delay:.3s}.cover-cell:nth-child(7){animation-delay:.35s}.cover-cell:nth-child(8){animation-delay:.4s}.cover-cell:nth-child(9){animation-delay:.45s}
+  @keyframes fadeIn{from{opacity:0;transform:scale(0.9)}to{opacity:1;transform:scale(1)}}
+  .hidden{display:none!important}
+  @media(max-width:480px){.input-grid{grid-template-columns:1fr 1fr}.input-cell:last-child{grid-column:span 2}.input-cell:last-child input{max-width:50%;margin:0 auto;display:block}body.theme-palace .cover-grid{gap:14px}}
+</style>
+</head>
+<body class="theme-yellow">
+<canvas id="sakuraCanvas"></canvas>
+<div class="app-container">
+  <h1 id="mainTitle">私を構成する9つのマンガ</h1>
+  <div class="theme-selector"><label>背景：</label>
+    <div class="theme-btn t-yellow active" onclick="setTheme('yellow',this)"></div>
+    <div class="theme-btn t-sakura" onclick="setTheme('sakura',this)"></div>
+    <div class="theme-btn t-palace" onclick="setTheme('palace',this)"></div>
+  </div>
+  <div class="name-row"><input type="text" id="nameInput" placeholder="私" oninput="updateName()" onfocus="this.select()"/><span>を構成する9つのマンガ</span></div>
+  <div class="input-section">
+    <div class="input-grid" id="inputGrid"></div>
+    <button class="btn-generate" id="btnGenerate" onclick="generate()">生成する</button>
+  </div>
+  <div class="result-wrapper hidden" id="resultWrapper">
+    <div class="result-card" id="resultCard">
+      <div class="sakura-bg" id="sakuraBg"></div>
+      <div class="result-title-row">
+        <svg class="sakura-icon" width="28" height="28" viewBox="0 0 100 100"><defs><path id="P" d="M0,-40 C10,-30 14,-18 10,-8 Q5,-2 0,0 Q-5,-2 -10,-8 C-14,-18 -10,-30 0,-40Z"/></defs><g transform="translate(50,52)"><use href="#P" fill="#f8bbd0" transform="rotate(0)"/><use href="#P" fill="#f8bbd0" transform="rotate(72)"/><use href="#P" fill="#f8bbd0" transform="rotate(144)"/><use href="#P" fill="#f8bbd0" transform="rotate(216)"/><use href="#P" fill="#f8bbd0" transform="rotate(288)"/><circle r="7" fill="#fff9c4" opacity="0.85"/><circle cx="0" cy="-5" r="1.6" fill="#fdd835"/><circle cx="4.8" cy="-1.5" r="1.6" fill="#fdd835"/><circle cx="3" cy="4" r="1.6" fill="#fdd835"/><circle cx="-3" cy="4" r="1.6" fill="#fdd835"/><circle cx="-4.8" cy="-1.5" r="1.6" fill="#fdd835"/></g></svg>
+        <div class="result-title" id="resultTitle">私を構成する9つのマンガ</div>
+        <svg class="sakura-icon" width="24" height="24" viewBox="0 0 100 100"><g transform="translate(50,52)"><use href="#P" fill="#f8bbd0" transform="rotate(36)"/><use href="#P" fill="#f8bbd0" transform="rotate(108)"/><use href="#P" fill="#f8bbd0" transform="rotate(180)"/><use href="#P" fill="#f8bbd0" transform="rotate(252)"/><use href="#P" fill="#f8bbd0" transform="rotate(324)"/><circle r="6" fill="#fff9c4" opacity="0.75"/><circle cx="0" cy="-4.5" r="1.3" fill="#fdd835"/><circle cx="4.3" cy="-1.4" r="1.3" fill="#fdd835"/><circle cx="2.6" cy="3.6" r="1.3" fill="#fdd835"/><circle cx="-2.6" cy="3.6" r="1.3" fill="#fdd835"/><circle cx="-4.3" cy="-1.4" r="1.3" fill="#fdd835"/></g></svg>
+      </div>
+      <div class="cover-grid" id="coverGrid"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-download" onclick="exportImage('download')">📥 ダウンロード</button>
+      <button class="btn-copy" onclick="exportImage('copy')">📋 コピー</button>
+    </div>
+    <div class="hints">↕ ドラッグ＆ドロップで並べ替え ／ ホバーで画像差し替え</div>
+  </div>
+</div>
+<div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div><div class="loading-text">表紙を検索中...</div></div>
+<div id="sugPanel"></div>
+<input type="file" id="fileUpload" accept="image/*" style="display:none"/>
+<!-- Hidden canvas for export -->
+<canvas id="exportCanvas" style="display:none"></canvas>
+
+<script>
+function updateName(){const n=document.getElementById('nameInput').value||'私',t=n+'を構成する9つのマンガ';document.getElementById('mainTitle').textContent=t;document.getElementById('resultTitle').textContent=t}
+let currentTheme='yellow';
+function setTheme(theme,btn){currentTheme=theme;document.body.className='theme-'+theme;document.querySelectorAll('.theme-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');if(theme==='sakura'){initSakura();genSP()}else stopSakura();if(!document.getElementById('resultWrapper').classList.contains('hidden'))buildGrid()}
+
+// ===== Canvas Export (no html2canvas needed) =====
+async function exportImage(mode){
+  const btnD=document.querySelector('.btn-download'),btnC=document.querySelector('.btn-copy');
+  const activeBtn=mode==='copy'?btnC:btnD;
+  activeBtn.disabled=true;activeBtn.textContent='⏳ 準備中...';
+
+  try{
+    // Wait for all grid images to be fully loaded
+    const gridImgs=document.querySelectorAll('#coverGrid img');
+    await Promise.all([...gridImgs].map(img=>img.complete?Promise.resolve():new Promise(r=>{img.onload=r;img.onerror=r})));
+
+    const W=1080,GAP=12,PAD=32,TITLE_H=60;
+    const cellW=Math.floor((W-PAD*2-GAP*2)/3);
+    const cellH=Math.floor(cellW*1.4);
+    const H=PAD+TITLE_H+cellH*3+GAP*2+PAD;
+    const cv=document.getElementById('exportCanvas');
+    cv.width=W;cv.height=H;
+    const c=cv.getContext('2d');
+
+    // Background
+    if(currentTheme==='yellow'){
+      c.fillStyle='#1a1a1a';c.beginPath();c.roundRect(0,0,W,H,32);c.fill();
+    }else if(currentTheme==='sakura'){
+      c.fillStyle='#fff5f7';c.beginPath();c.roundRect(0,0,W,H,32);c.fill();
+      // Draw sakura petals
+      c.strokeStyle='#f48fb1';c.lineWidth=2;
+      c.beginPath();c.roundRect(0,0,W,H,32);c.stroke();
+      for(let i=0;i<25;i++){
+        const x=Math.random()*W,y=Math.random()*H,s=10+Math.random()*18,rot=Math.random()*Math.PI*2;
+        c.save();c.translate(x,y);c.rotate(rot);c.globalAlpha=0.08+Math.random()*0.1;
+        c.fillStyle=['#f48fb1','#f8bbd0','#fce4ec'][Math.floor(Math.random()*3)];
+        c.beginPath();c.moveTo(0,-s/2);c.bezierCurveTo(s*0.6,-s*0.35,s*0.5,s*0.3,0,s/2);c.bezierCurveTo(-s*0.5,s*0.3,-s*0.6,-s*0.35,0,-s/2);c.fill();
+        c.restore();
+      }
+      c.globalAlpha=1;
+    }else{
+      c.fillStyle='#0f2b1e';c.beginPath();c.roundRect(0,0,W,H,32);c.fill();
+      // Damask pattern
+      c.strokeStyle='rgba(180,160,80,0.08)';c.lineWidth=1;
+      for(let py=0;py<H;py+=60)for(let px=0;px<W;px+=60){
+        c.beginPath();c.moveTo(px+30,py+5);c.bezierCurveTo(px+34,py+9,px+40,py+13,px+40,py+20);c.bezierCurveTo(px+40,py+27,px+34,py+31,px+30,py+35);c.bezierCurveTo(px+26,py+31,px+20,py+27,px+20,py+20);c.bezierCurveTo(px+20,py+13,px+26,py+9,px+30,py+5);c.stroke();
+      }
+      c.strokeStyle='rgba(212,162,78,0.3)';c.lineWidth=2;c.beginPath();c.roundRect(0,0,W,H,32);c.stroke();
+    }
+
+    // Title
+    const title=(document.getElementById('nameInput').value||'私')+'を構成する9つのマンガ';
+    c.textAlign='center';c.textBaseline='middle';
+    if(currentTheme==='yellow'){c.fillStyle='#FFD700';c.font='28px "Dela Gothic One"'}
+    else if(currentTheme==='sakura'){c.fillStyle='#c2185b';c.font='700 26px "Zen Maru Gothic"'}
+    else{c.fillStyle='#d4a24e';c.font='26px "Noto Serif JP"'}
+    c.fillText(title,W/2,PAD+TITLE_H/2);
+
+    // Draw covers
+    const startY=PAD+TITLE_H;
+    for(let row=0;row<3;row++){
+      for(let col=0;col<3;col++){
+        const idx=row*3+col;
+        const di=gO[idx];
+        const x=PAD+col*(cellW+GAP);
+        const y=startY+row*(cellH+GAP);
+
+        if(currentTheme==='palace'){
+          // Gold frame
+          const fw=8;
+          const grd=c.createLinearGradient(x-fw,y-fw,x+cellW+fw,y+cellH+fw);
+          grd.addColorStop(0,'#c9952c');grd.addColorStop(0.15,'#f5e6a3');grd.addColorStop(0.3,'#a0722c');grd.addColorStop(0.45,'#dbc078');grd.addColorStop(0.55,'#8b6914');grd.addColorStop(0.7,'#dbc078');grd.addColorStop(0.85,'#a0722c');grd.addColorStop(0.95,'#f5e6a3');grd.addColorStop(1,'#c9952c');
+          c.fillStyle=grd;c.fillRect(x-fw,y-fw,cellW+fw*2,cellH+fw*2);
+          c.fillStyle='#0a1f14';c.fillRect(x,y,cellW,cellH);
+        }else if(currentTheme==='sakura'){
+          c.fillStyle='#fce4ec';c.fillRect(x,y,cellW,cellH);
+        }else{
+          c.fillStyle='#2a2a2a';c.beginPath();c.roundRect(x,y,cellW,cellH,8);c.fill();
+        }
+
+        const m=MD[di];
+        if(m?.cover){
+          // Find the actual img element in the grid
+          const imgEl=document.querySelector(`#coverGrid .cover-cell:nth-child(${idx+1}) img`);
+          if(imgEl&&imgEl.complete&&imgEl.naturalWidth>0){
+            try{
+              // Cover fit
+              const iw=imgEl.naturalWidth,ih=imgEl.naturalHeight;
+              const scale=Math.max(cellW/iw,cellH/ih);
+              const sw=iw*scale,sh=ih*scale;
+              const sx=x+(cellW-sw)/2,sy=y+(cellH-sh)/2;
+              c.save();
+              if(currentTheme!=='palace'){c.beginPath();c.roundRect(x,y,cellW,cellH,8);c.clip()}
+              else{c.beginPath();c.rect(x,y,cellW,cellH);c.clip()}
+              c.drawImage(imgEl,sx,sy,sw,sh);
+              c.restore();
+            }catch(e){drawPlaceholder(c,x,y,cellW,cellH,m.title||'?')}
+          }else{drawPlaceholder(c,x,y,cellW,cellH,m.title||'?')}
+        }else{drawPlaceholder(c,x,y,cellW,cellH,m?.title||'?')}
+      }
+    }
+
+    const blob=await new Promise(r=>cv.toBlob(r,'image/png'));
+
+    if(mode==='copy'){
+      await navigator.clipboard.write([new ClipboardItem({'image/png':blob})]);
+      activeBtn.textContent='✅ コピーしました！';setTimeout(()=>{activeBtn.textContent='📋 コピー';activeBtn.disabled=false},2000);
+    }else{
+      if(window.showSaveFilePicker){
+        try{const handle=await window.showSaveFilePicker({suggestedName:title+'.png',types:[{description:'PNG',accept:{'image/png':['.png']}}]});const w=await handle.createWritable();await w.write(blob);await w.close()}
+        catch(e){if(e.name!=='AbortError')dlBlob(blob,title)}
+      }else{dlBlob(blob,title)}
+      activeBtn.disabled=false;activeBtn.textContent='📥 ダウンロード';
+    }
+  }catch(e){console.error(e);alert('エクスポートに失敗しました');activeBtn.disabled=false;activeBtn.textContent=mode==='copy'?'📋 コピー':'📥 ダウンロード'}
+}
+function dlBlob(blob,name){const u=URL.createObjectURL(blob);const a=document.createElement('a');a.download=name+'.png';a.href=u;a.click();setTimeout(()=>URL.revokeObjectURL(u),5000)}
+function drawPlaceholder(c,x,y,w,h,text){c.fillStyle='rgba(255,255,255,0.15)';c.font='14px "Noto Sans JP"';c.textAlign='center';c.textBaseline='middle';c.fillText(text,x+w/2,y+h/2)}
+
+// Sakura
+const sC=document.getElementById('sakuraCanvas'),ctx=sC.getContext('2d');let petals=[],sA=null;
+function initSakura(){sC.width=window.innerWidth;sC.height=window.innerHeight;petals=[];for(let i=0;i<35;i++)petals.push({x:Math.random()*sC.width,y:Math.random()*sC.height*2-sC.height,size:8+Math.random()*12,speed:0.4+Math.random()*1.2,drift:-0.3+Math.random()*0.6,rot:Math.random()*Math.PI*2,rs:0.01+Math.random()*0.025,op:0.25+Math.random()*0.45,c:['#f48fb1','#f8bbd0','#fce4ec','#ec407a','#f06292'][Math.floor(Math.random()*5)]});if(!sA)anS()}
+function stopSakura(){if(sA){cancelAnimationFrame(sA);sA=null}ctx.clearRect(0,0,sC.width,sC.height)}
+function anS(){ctx.clearRect(0,0,sC.width,sC.height);petals.forEach(p=>{p.y+=p.speed;p.x+=p.drift+Math.sin(p.y*0.008)*0.4;p.rot+=p.rs;if(p.y>sC.height+20){p.y=-20;p.x=Math.random()*sC.width}if(p.x<-20)p.x=sC.width+20;if(p.x>sC.width+20)p.x=-20;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.globalAlpha=p.op;ctx.beginPath();ctx.fillStyle=p.c;ctx.moveTo(0,-p.size/2);ctx.bezierCurveTo(p.size*0.6,-p.size*0.35,p.size*0.5,p.size*0.3,0,p.size/2);ctx.bezierCurveTo(-p.size*0.5,p.size*0.3,-p.size*0.6,-p.size*0.35,0,-p.size/2);ctx.fill();ctx.restore()});sA=requestAnimationFrame(anS)}
+function genSP(){const bg=document.getElementById('sakuraBg');bg.innerHTML='';for(let i=0;i<18;i++){const d=document.createElement('div');const s=8+Math.random()*14;const cl=['#f48fb1','#f8bbd0','#fce4ec'][Math.floor(Math.random()*3)];d.style.cssText=`position:absolute;left:${Math.random()*100}%;top:${Math.random()*100}%;transform:rotate(${Math.random()*360}deg);opacity:${0.1+Math.random()*0.15};pointer-events:none`;d.innerHTML=`<svg viewBox="0 0 20 20" width="${s}" height="${s}"><path d="M10 0C14 3 16 8 10 20C4 8 6 3 10 0Z" fill="${cl}"/></svg>`;bg.appendChild(d)}}
+window.addEventListener('resize',()=>{sC.width=window.innerWidth;sC.height=window.innerHeight});
+
+const MD={};let dT={},aS=-1,mIS=false,lR={},uI=null;
+const sP=document.getElementById('sugPanel');sP.addEventListener('mouseenter',()=>{mIS=true});sP.addEventListener('mouseleave',()=>{mIS=false});
+const fU=document.getElementById('fileUpload');fU.addEventListener('change',e=>{const f=e.target.files[0];if(!f||uI===null)return;const r=new FileReader();r.onload=ev=>{MD[uI]=MD[uI]||{title:'',cover:'',authors:''};MD[uI].cover=ev.target.result;buildGrid()};r.readAsDataURL(f);fU.value=''});
+
+const iG=document.getElementById('inputGrid');
+for(let i=0;i<9;i++){const c=document.createElement('div');c.className='input-cell';c.innerHTML=`<span class="cell-num">${i+1}</span><input type="text" id="input${i}" placeholder="タイトル${i+1}" autocomplete="off"/>`;iG.appendChild(c);const inp=c.querySelector('input');
+inp.addEventListener('input',e=>hI(i,e.target.value));inp.addEventListener('focus',e=>{const v=e.target.value;if(v.length>=2){if(lR[i]&&lR[i].q===v){aS=i;rS(i,lR[i].items)}else hI(i,v)}});
+inp.addEventListener('blur',()=>{setTimeout(()=>{if(!mIS)cS()},200)});inp.addEventListener('keydown',e=>{if(e.key==='Enter'){cS();const n=document.getElementById(`input${(i+1)%9}`);if(n)n.focus()}})}
+
+function cS(){sP.classList.remove('show');aS=-1}
+function pS(el){const r=el.getBoundingClientRect(),pw=Math.max(300,r.width*1.8);let l=r.left+r.width/2-pw/2;l=Math.max(8,Math.min(l,window.innerWidth-pw-8));const sb=window.innerHeight-r.bottom-16,sa=r.top-16;if(sb>=200||sb>=sa){sP.style.top=(r.bottom+6)+'px';sP.style.bottom='auto';sP.style.maxHeight=Math.min(420,sb)+'px'}else{sP.style.bottom=(window.innerHeight-r.top+6)+'px';sP.style.top='auto';sP.style.maxHeight=Math.min(420,sa)+'px'}sP.style.left=l+'px';sP.style.width=pw+'px'}
+function hI(i,v){if(dT[i])clearTimeout(dT[i]);if(v.length<2){cS();return}aS=i;sP.innerHTML='<div class="sug-header">📚 検索中...</div><div class="sug-loading">検索中...</div>';pS(document.getElementById(`input${i}`));sP.classList.add('show');dT[i]=setTimeout(()=>sM(i,v),350)}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+async function sM(i,q){if(aS!==i)return;try{
+  let items=[];
+  let googleOk=true;
+
+  // Try Google Books first
+  try{
+    const r=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&langRestrict=ja&maxResults=30&printType=books`);
+    if(r.status===429||r.status===403){googleOk=false}
+    else if(r.ok){const d=await r.json();if(d.items)items=d.items;
+      // If 0 results, try without langRestrict
+      if(!items.length){const r2=await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(q)}&maxResults=30&printType=books`);if(r2.ok){const d2=await r2.json();if(d2.items)items=d2.items}}
+    }else{googleOk=false}
+  }catch(e){googleOk=false}
+
+  // Open Library fallback (if Google failed or returned nothing)
+  if(!items.length){
+    try{
+      const r=await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(q)}&limit=20`);
+      if(r.ok){const d=await r.json();
+        if(d.docs&&d.docs.length){
+          items=d.docs.map(doc=>({
+            id:'ol_'+doc.key,
+            volumeInfo:{
+              title:doc.title||'',
+              authors:doc.author_name||[],
+              imageLinks:doc.cover_i?{thumbnail:`https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`}:null
+            }
+          }));
+        }
+      }
+    }catch(e){}
+  }
+
+  items.sort((a,b)=>{const ai=a.volumeInfo?.imageLinks?.thumbnail?0:1,bi=b.volumeInfo?.imageLinks?.thumbnail?0:1;return ai!==bi?ai-bi:(a.volumeInfo?.title?.length||999)-(b.volumeInfo?.title?.length||999)});
+  lR[i]={q,items};
+  if(aS===i){
+    if(!items.length&&!googleOk){
+      // Show rate limit message
+      sP.innerHTML='<div class="sug-header">📚 検索</div><div class="sug-empty">Google Books APIの制限に達しました<br><span style="font-size:11px;color:#888">しばらく待つか、「生成する」→「画像を選択」で<br>手動アップロードしてください</span></div>';
+      pS(document.getElementById(`input${i}`));sP.classList.add('show');
+    }else{rS(i,items)}
+  }
+}catch(e){sP.innerHTML='<div class="sug-header">📚</div><div class="sug-empty">検索に失敗しました</div>';pS(document.getElementById(`input${i}`));sP.classList.add('show')}}
+function rS(i,items){const el=document.getElementById(`input${i}`);sP.innerHTML=`<div class="sug-header">📚 検索結果（${items.length}件）</div>`;if(!items.length){sP.innerHTML+='<div class="sug-empty">見つかりませんでした</div>';pS(el);sP.classList.add('show');return}items.forEach(item=>{const info=item.volumeInfo,th=info.imageLinks?.thumbnail||info.imageLinks?.smallThumbnail||'',title=info.title||'',auth=(info.authors||[]).join(', ');const d=document.createElement('div');d.className='sug-item';d.innerHTML=`${th?`<img class="sug-thumb" src="${th.replace('http://','https://')}">`:'<div class="sug-no-img">📖</div>'}<div class="sug-info"><div class="sug-title">${esc(title)}</div>${auth?`<div class="sug-meta"><span class="sug-author">${esc(auth)}</span></div>`:''}</div>`;d.addEventListener('mousedown',e=>{e.preventDefault();sel(i,title,th,auth)});d.addEventListener('touchend',e=>{e.preventDefault();sel(i,title,th,auth)});sP.appendChild(d)});pS(el);sP.classList.add('show')}
+function sel(i,title,cover,auth){document.getElementById(`input${i}`).value=title;document.getElementById(`input${i}`).classList.add('has-cover');MD[i]={title,cover:cover?cover.replace('http://','https://'):'' ,authors:auth};mIS=false;cS();const n=document.getElementById(`input${(i+1)%9}`);if(n&&!n.value)n.focus()}
+
+async function generate(){const btn=document.getElementById('btnGenerate'),ld=document.getElementById('loadingOverlay');let cnt=0;for(let i=0;i<9;i++){const v=document.getElementById(`input${i}`).value.trim();if(v&&!MD[i]?.title)MD[i]={title:v,cover:'',authors:''};if(MD[i]?.title)cnt++}if(!cnt){alert('少なくとも1つマンガを入力してください');return}btn.disabled=true;ld.classList.add('active');
+  for(let i=0;i<9;i++){if(MD[i]?.title&&!MD[i]?.cover){
+    let found=false;
+    // Google Books
+    for(const url of[
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(MD[i].title)}&langRestrict=ja&maxResults=5&printType=books`,
+      `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(MD[i].title)}&maxResults=5&printType=books`
+    ]){if(found)break;try{const res=await fetch(url);if(res.status===429||res.status===403)break;if(!res.ok)continue;const data=await res.json();const w=(data.items||[]).find(it=>it.volumeInfo?.imageLinks?.thumbnail);if(w){MD[i].cover=w.volumeInfo.imageLinks.thumbnail.replace('http://','https://');found=true}else if(data.items?.[0]?.volumeInfo?.imageLinks?.smallThumbnail){MD[i].cover=data.items[0].volumeInfo.imageLinks.smallThumbnail.replace('http://','https://');found=true}}catch(e){}}
+    // Open Library fallback
+    if(!found){try{const r=await fetch(`https://openlibrary.org/search.json?q=${encodeURIComponent(MD[i].title)}&limit=5`);if(r.ok){const d=await r.json();const doc=(d.docs||[]).find(x=>x.cover_i);if(doc){MD[i].cover=`https://covers.openlibrary.org/b/id/${doc.cover_i}-M.jpg`;found=true}}}catch(e){}}
+  }}
+  if(currentTheme==='sakura')genSP();buildGrid();updateName();document.getElementById('resultWrapper').classList.remove('hidden');ld.classList.remove('active');btn.disabled=false;setTimeout(()=>document.getElementById('resultWrapper').scrollIntoView({behavior:'smooth',block:'center'}),100)}
+
+let gO=[0,1,2,3,4,5,6,7,8],dSrc=null;
+function buildGrid(){const cg=document.getElementById('coverGrid');cg.innerHTML='';gO.forEach((di,gp)=>{const cell=document.createElement('div');cell.className='cover-cell';cell.draggable=true;cell.dataset.gridpos=gp;const m=MD[di];
+if(m?.cover){const hr=m.cover.startsWith('data:')?m.cover:m.cover.replace('zoom=1','zoom=2').replace('&edge=curl','');cell.innerHTML=`<img src="${hr}" alt="${esc(m.title||'')}" crossorigin="anonymous" onerror="this.onerror=null;this.src='${m.cover}'"/><div class="upload-overlay" onclick="trigUp(${di})"><span>📁 画像を変更</span></div><div class="cover-title-overlay">${esc(m.title||'')}</div>`}else if(m?.title){cell.innerHTML=`<div class="cover-placeholder">${esc(m.title)}<label class="upload-btn" onclick="trigUp(${di})">📁 画像を選択</label></div>`}else{cell.innerHTML=`<div class="cover-placeholder">?</div>`}
+cell.addEventListener('dragstart',e=>{dSrc=gp;cell.classList.add('dragging');e.dataTransfer.effectAllowed='move'});cell.addEventListener('dragend',()=>{cell.classList.remove('dragging');document.querySelectorAll('.cover-cell').forEach(c=>c.classList.remove('drag-over'));dSrc=null});cell.addEventListener('dragover',e=>{e.preventDefault();if(dSrc!==null&&dSrc!==gp)cell.classList.add('drag-over')});cell.addEventListener('dragleave',()=>cell.classList.remove('drag-over'));cell.addEventListener('drop',e=>{e.preventDefault();cell.classList.remove('drag-over');if(dSrc===null||dSrc===gp)return;const t=gO[dSrc];gO[dSrc]=gO[gp];gO[gp]=t;buildGrid()});
+let tc=null;cell.addEventListener('touchstart',e=>{if(e.target.closest('.upload-btn')||e.target.closest('.upload-overlay'))return;dSrc=gp},{passive:true});cell.addEventListener('touchmove',e=>{if(dSrc===null)return;e.preventDefault();const touch=e.touches[0];if(!tc){tc=cell.cloneNode(true);tc.style.cssText=`position:fixed;z-index:1000;pointer-events:none;opacity:0.8;width:${cell.offsetWidth}px;height:${cell.offsetHeight}px;`;document.body.appendChild(tc);cell.classList.add('dragging')}tc.style.left=(touch.clientX-cell.offsetWidth/2)+'px';tc.style.top=(touch.clientY-cell.offsetHeight/2)+'px';document.querySelectorAll('.cover-cell').forEach(c=>c.classList.remove('drag-over'));const el=document.elementFromPoint(touch.clientX,touch.clientY);const tgt=el?.closest('.cover-cell');if(tgt&&tgt!==cell)tgt.classList.add('drag-over')},{passive:false});cell.addEventListener('touchend',e=>{if(tc){document.body.removeChild(tc);tc=null}cell.classList.remove('dragging');document.querySelectorAll('.cover-cell').forEach(c=>c.classList.remove('drag-over'));if(dSrc===null)return;const touch=e.changedTouches[0];const el=document.elementFromPoint(touch.clientX,touch.clientY);const tgt=el?.closest('.cover-cell');if(tgt){const tp=parseInt(tgt.dataset.gridpos);if(!isNaN(tp)&&tp!==dSrc){const t=gO[dSrc];gO[dSrc]=gO[tp];gO[tp]=t;buildGrid()}}dSrc=null});cg.appendChild(cell)})}
+function trigUp(di){uI=di;fU.click()}
+window.addEventListener('scroll',()=>{if(!mIS)cS()});window.addEventListener('resize',cS);
+</script>
+</body>
+</html>

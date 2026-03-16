@@ -1,0 +1,8 @@
+{
+  "name": "manga9-app",
+  "version": "1.0.0",
+  "description": "私を構成する9つのマンガ",
+  "scripts": {
+    "start": "npx serve ."
+  }
+}
