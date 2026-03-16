@@ -351,7 +351,7 @@ function titleMatchScore(query, allTitles){
   return best;
 }
 // Detect special/variant editions: penalty +10
-const _spRe=/カラー|版|編|特装|愛蔵|完全|fan.?colou?r|colou?red|full.?colou?r|digital.?colou?r|deluxe|omnibus/i;
+const _spRe=/オールカラー|フルカラー|カラー版|デジタル版|愛蔵版|特装版|完全版|文庫版|新装版|豪華版|限定版|総集編|特別編|fan.?colou?r|colou?red|full.?colou?r|digital.?colou?r|deluxe|omnibus/i;
 function editionPenalty(allTitles){
   for(const t of allTitles){if(_spRe.test(t)) return 10}
   return 0;
