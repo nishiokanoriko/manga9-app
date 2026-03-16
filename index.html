@@ -344,7 +344,7 @@ async function sM(i,q){if(aS!==i)return;try{
 
   // ===== Strategy 1: MangaDex API =====
   try{
-    const r=await fetch(`https://api.mangadex.org/manga?title=${encodeURIComponent(q)}&limit=20&includes[]=cover_art&includes[]=author&order[relevance]=desc&contentRating[]=safe&contentRating[]=suggestive`);
+    const r=await fetch(`/api/manga-search?title=${encodeURIComponent(q)}&limit=20`);
     if(r.ok){const d=await r.json();
       console.log('[DEBUG] MangaDex API raw response for query:', q, 'total:', d.data?.length);
       if(d.data&&d.data.length){
@@ -402,7 +402,7 @@ async function generate(){const btn=document.getElementById('btnGenerate'),ld=do
     let found=false;
     // MangaDex first
     try{
-      const r=await fetch(`https://api.mangadex.org/manga?title=${encodeURIComponent(MD[i].title)}&limit=5&includes[]=cover_art&contentRating[]=safe&contentRating[]=suggestive`);
+      const r=await fetch(`/api/manga-search?title=${encodeURIComponent(MD[i].title)}&limit=5`);
       if(r.ok){const d=await r.json();console.log(`[DEBUG] generate() slot=${i} title="${MD[i].title}" mangadex results:`,d.data?.length);const m=(d.data||[]).find(x=>mdCover(x));
         if(m){MD[i].cover=mdCover(m);found=true;console.log(`[DEBUG] generate() slot=${i} cover found:`,MD[i].cover)}else{console.log(`[DEBUG] generate() slot=${i} no cover found in MangaDex results`)}}
     }catch(e){}
