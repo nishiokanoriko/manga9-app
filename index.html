@@ -342,10 +342,10 @@ function titleMatchScore(query, allTitles){
   }
   return best;
 }
-// Detect special/variant editions (lower = more normal)
-const _spRe=/fan.?colou?r|full.?colou?r|カラー版|オールカラー|フルカラー|愛蔵版|特装版|完全版|文庫版|新装版|豪華版|限定版|digital.?colou?r|colou?red|deluxe|omnibus/i;
+// Detect special/variant editions: penalty +10
+const _spRe=/カラー|版|編|特装|愛蔵|完全|fan.?colou?r|colou?red|full.?colou?r|digital.?colou?r|deluxe|omnibus/i;
 function editionPenalty(allTitles){
-  for(const t of allTitles){if(_spRe.test(t)) return 1}
+  for(const t of allTitles){if(_spRe.test(t)) return 10}
   return 0;
 }
 
@@ -363,13 +363,11 @@ async function sM(i,q){if(aS!==i)return;try{
             id:'md_'+m.id,
             volumeInfo:{title:mdTitle(m),authors:mdAuthors(m)?[mdAuthors(m)]:[],imageLinks:mdCover(m)?{thumbnail:mdCover(m)}:null},
             _src:'mangadex',
-            _score:titleMatchScore(q,allT),
-            _edition:editionPenalty(allT)
+            _score:titleMatchScore(q,allT)+editionPenalty(allT)
           };
         });
         items.sort((a,b)=>{
           if(a._score!==b._score) return a._score-b._score;
-          if(a._edition!==b._edition) return a._edition-b._edition;
           const tl=((a.volumeInfo?.title||'').length|0)-((b.volumeInfo?.title||'').length|0);
           if(tl!==0) return tl;
           const ai=a.volumeInfo?.imageLinks?.thumbnail?0:1,bi=b.volumeInfo?.imageLinks?.thumbnail?0:1;
@@ -403,13 +401,8 @@ async function sM(i,q){if(aS!==i)return;try{
 
   lR[i]={q,items};if(aS===i)rS(i,items);
 }catch(e){sP.innerHTML='<div class="sug-header">📚</div><div class="sug-empty">検索に失敗しました</div>';pS(document.getElementById(`input${i}`));sP.classList.add('show')}}
-function rS(i,items){const el=document.getElementById(`input${i}`);sP.innerHTML=`<div class="sug-header">📚 検索結果（${items.length}件）</div>`;if(!items.length){sP.innerHTML+='<div class="sug-empty">見つかりませんでした</div>';pS(el);sP.classList.add('show');return}items.forEach(item=>{const info=item.volumeInfo,th=info.imageLinks?.thumbnail||info.imageLinks?.smallThumbnail||'',title=info.title||'',auth=(info.authors||[]).join(', '),src=item._src,iid=item.id||'';const d=document.createElement('div');d.className='sug-item';d.innerHTML=`${th?`<img class="sug-thumb" src="${proxyImg(th)}">`:'<div class="sug-no-img">📖</div>'}<div class="sug-info"><div class="sug-title">${esc(title)}</div><div class="sug-meta">${auth?`<span class="sug-author">${esc(auth)}</span>`:''}</div></div>`;d.addEventListener('mousedown',e=>{e.preventDefault();sel(i,title,th,auth,iid)});d.addEventListener('touchend',e=>{e.preventDefault();sel(i,title,th,auth,iid)});sP.appendChild(d)});pS(el);sP.classList.add('show')}
-function sel(i,title,cover,auth,iid){document.getElementById(`input${i}`).value=title;document.getElementById(`input${i}`).classList.add('has-cover');MD[i]={title,cover:cover?cover.replace('http://','https://'):'' ,authors:auth};mIS=false;cS();const n=document.getElementById(`input${(i+1)%9}`);if(n&&!n.value)n.focus();
-  // Fetch volume 1 cover from MangaDex if available
-  if(iid&&iid.startsWith('md_')){const mangaId=iid.slice(3);
-    fetch(`/api/manga-cover?mangaId=${mangaId}`).then(r=>r.ok?r.json():null).then(d=>{
-      if(d?.data?.length){const fn=d.data[0]?.attributes?.fileName;if(fn){MD[i].cover=`https://uploads.mangadex.org/covers/${mangaId}/${fn}.512.jpg`}}
-    }).catch(()=>{})}}
+function rS(i,items){const el=document.getElementById(`input${i}`);sP.innerHTML=`<div class="sug-header">📚 検索結果（${items.length}件）</div>`;if(!items.length){sP.innerHTML+='<div class="sug-empty">見つかりませんでした</div>';pS(el);sP.classList.add('show');return}items.forEach(item=>{const info=item.volumeInfo,th=info.imageLinks?.thumbnail||info.imageLinks?.smallThumbnail||'',title=info.title||'',auth=(info.authors||[]).join(', ');const d=document.createElement('div');d.className='sug-item';d.innerHTML=`${th?`<img class="sug-thumb" src="${proxyImg(th)}">`:'<div class="sug-no-img">📖</div>'}<div class="sug-info"><div class="sug-title">${esc(title)}</div><div class="sug-meta">${auth?`<span class="sug-author">${esc(auth)}</span>`:''}</div></div>`;d.addEventListener('mousedown',e=>{e.preventDefault();sel(i,title,th,auth)});d.addEventListener('touchend',e=>{e.preventDefault();sel(i,title,th,auth)});sP.appendChild(d)});pS(el);sP.classList.add('show')}
+function sel(i,title,cover,auth){document.getElementById(`input${i}`).value=title;document.getElementById(`input${i}`).classList.add('has-cover');MD[i]={title,cover:cover?cover.replace('http://','https://'):'' ,authors:auth};mIS=false;cS();const n=document.getElementById(`input${(i+1)%9}`);if(n&&!n.value)n.focus()}
 
 async function generate(){const btn=document.getElementById('btnGenerate'),ld=document.getElementById('loadingOverlay');let cnt=0;for(let i=0;i<9;i++){const v=document.getElementById(`input${i}`).value.trim();if(v&&!MD[i]?.title)MD[i]={title:v,cover:'',authors:''};if(MD[i]?.title)cnt++}if(!cnt){alert('少なくとも1つマンガを入力してください');return}btn.disabled=true;ld.classList.add('active');
   for(let i=0;i<9;i++){if(MD[i]?.title&&!MD[i]?.cover){
