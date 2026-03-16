@@ -419,11 +419,14 @@ function sel(i,title,cover,auth,iid){
   mIS=false;cS();
   // If MangaDex item, show cover picker
   if(iid&&iid.startsWith('md_')){const mangaId=iid.slice(3);
+    _cpJustOpened=true;
     cPP.innerHTML='<div class="sug-header">📖 巻を選択（読み込み中...）</div>';
     const r2=el.getBoundingClientRect();const pw=Math.max(300,r2.width*1.8);let l=r2.left+r2.width/2-pw/2;l=Math.max(8,Math.min(l,window.innerWidth-pw-8));
     cPP.style.top=(r2.bottom+6)+'px';cPP.style.left=l+'px';cPP.style.width=pw+'px';cPP.classList.add('show');
     fetch(`/api/manga-cover?mangaId=${mangaId}&limit=30`).then(r=>r.ok?r.json():null).then(d=>{
       if(!d?.data?.length){closeCoverPicker();return}
+      // Sort by volume number (numeric)
+      d.data.sort((a,b)=>{const va=parseFloat(a.attributes?.volume)||9999,vb=parseFloat(b.attributes?.volume)||9999;return va-vb});
       cPP.innerHTML='<div class="sug-header">📖 巻の表紙を選択</div><div class="cp-grid"></div>';
       const grid=cPP.querySelector('.cp-grid');
       d.data.forEach(cv=>{
@@ -474,7 +477,8 @@ cell.addEventListener('dragstart',e=>{dSrc=gp;cell.classList.add('dragging');e.d
 let tc=null;cell.addEventListener('touchstart',e=>{if(e.target.closest('.upload-btn')||e.target.closest('.upload-overlay'))return;dSrc=gp},{passive:true});cell.addEventListener('touchmove',e=>{if(dSrc===null)return;e.preventDefault();const touch=e.touches[0];if(!tc){tc=cell.cloneNode(true);tc.style.cssText=`position:fixed;z-index:1000;pointer-events:none;opacity:0.8;width:${cell.offsetWidth}px;height:${cell.offsetHeight}px;`;document.body.appendChild(tc);cell.classList.add('dragging')}tc.style.left=(touch.clientX-cell.offsetWidth/2)+'px';tc.style.top=(touch.clientY-cell.offsetHeight/2)+'px';document.querySelectorAll('.cover-cell').forEach(c=>c.classList.remove('drag-over'));const el=document.elementFromPoint(touch.clientX,touch.clientY);const tgt=el?.closest('.cover-cell');if(tgt&&tgt!==cell)tgt.classList.add('drag-over')},{passive:false});cell.addEventListener('touchend',e=>{if(tc){document.body.removeChild(tc);tc=null}cell.classList.remove('dragging');document.querySelectorAll('.cover-cell').forEach(c=>c.classList.remove('drag-over'));if(dSrc===null)return;const touch=e.changedTouches[0];const el=document.elementFromPoint(touch.clientX,touch.clientY);const tgt=el?.closest('.cover-cell');if(tgt){const tp=parseInt(tgt.dataset.gridpos);if(!isNaN(tp)&&tp!==dSrc){const t=gO[dSrc];gO[dSrc]=gO[tp];gO[tp]=t;buildGrid()}}dSrc=null});cg.appendChild(cell)})}
 function trigUp(di){uI=di;fU.click()}
 window.addEventListener('scroll',()=>{if(!mIS)cS()});window.addEventListener('resize',()=>{cS();closeCoverPicker()});
-document.addEventListener('mousedown',e=>{if(!cPP.contains(e.target))closeCoverPicker()});
+let _cpJustOpened=false;
+document.addEventListener('mousedown',e=>{if(_cpJustOpened){_cpJustOpened=false;return}if(!cPP.contains(e.target))closeCoverPicker()});
 </script>
 </body>
 </html>
