@@ -423,10 +423,12 @@ function sel(i,title,cover,auth,iid){
     cPP.innerHTML='<div class="sug-header">📖 巻を選択（読み込み中...）</div>';
     const r2=el.getBoundingClientRect();const pw=Math.max(300,r2.width*1.8);let l=r2.left+r2.width/2-pw/2;l=Math.max(8,Math.min(l,window.innerWidth-pw-8));
     cPP.style.top=(r2.bottom+6)+'px';cPP.style.left=l+'px';cPP.style.width=pw+'px';cPP.classList.add('show');
-    fetch(`/api/manga-cover?mangaId=${mangaId}&limit=30`).then(r=>r.ok?r.json():null).then(d=>{
+    fetch(`/api/manga-cover?mangaId=${mangaId}`).then(r=>r.ok?r.json():null).then(d=>{
       if(!d?.data?.length){closeCoverPicker();return}
       // Sort by volume number (numeric)
       d.data.sort((a,b)=>{const va=parseFloat(a.attributes?.volume)||9999,vb=parseFloat(b.attributes?.volume)||9999;return va-vb});
+      // Deduplicate by volume number (keep first)
+      const seenVol=new Set();d.data=d.data.filter(cv=>{const v=cv.attributes?.volume||'';if(!v)return true;if(seenVol.has(v))return false;seenVol.add(v);return true});
       cPP.innerHTML='<div class="sug-header">📖 巻の表紙を選択</div><div class="cp-grid"></div>';
       const grid=cPP.querySelector('.cp-grid');
       d.data.forEach(cv=>{
